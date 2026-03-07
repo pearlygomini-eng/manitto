@@ -778,8 +778,7 @@ function renderResult() {
       ${tasteBox}
       <div class="card-pw">비밀번호: <span>${m.pw}</span></div>
       <div class="card-actions">
-        <button class="btn btn-kakao" onclick="shareKakao(${i})">💬 카톡 공유</button>
-        <button class="btn btn-outline" onclick="copyIndividual(${i})">🔗 결과 직접 공유</button>
+        <button class="btn btn-primary" style="flex:1" onclick="shareKakao(${i})">💬 공유하기</button>
       </div>
     </div>`;
   }).join('');
@@ -803,44 +802,53 @@ function makeIndividualUrl(m) {
   return location.href.split('?')[0] + '?result=' + data;
 }
 
-function shareKakao(i) {
-  const m = matches[i];
+function makeShareText(m) {
   const url = makeIndividualUrl(m);
-  const text = `🎉 마니또 결과 도착!\n\n안녕하세요, ${m.giver.nick}님!\n아래 링크에서 비밀번호를 입력하면 나의 마니또를 확인할 수 있어요 🎁\n\n🔑 비밀번호: ${m.pw}\n🔗 확인 링크: ${url}`;
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(() => showToast('카톡 메시지 복사 완료!'))
-      .catch(() => fallbackCopy(text));
-  } else {
-    fallbackCopy(text);
-  }
+  return `"${m.giver.nick}"님의 비밀번호는 "${m.pw}"입니다. 🎁\n결과를 확인하고 활동을 시작해볼까요?\n결과 확인 링크: ${url}`;
+}
+
+function shareKakao(i) {
+  const text = makeShareText(matches[i]);
+  copyToClipboard(text, '카톡 메시지 복사 완료!');
 }
 
 function copyIndividual(i) {
-  const m = matches[i];
-  const url = makeIndividualUrl(m);
-  const text = `🎉 마니또 결과 도착!\n\n안녕하세요, ${m.giver.nick}님!\n아래 링크에서 비밀번호를 입력하면 나의 마니또를 확인할 수 있어요 🎁\n\n🔑 비밀번호: ${m.pw}\n🔗 확인 링크: ${url}`;
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text)
-      .then(() => showToast('링크 복사 완료!'))
-      .catch(() => fallbackCopy(text));
-  } else {
-    fallbackCopy(text);
-  }
+  const text = makeShareText(matches[i]);
+  copyToClipboard(text, '복사 완료!');
 }
 
-function fallbackCopy(text) {
+function copyToClipboard(text, successMsg) {
+  // 방법 1: 최신 Clipboard API
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text)
+      .then(() => showToast(successMsg))
+      .catch(() => execCopy(text, successMsg));
+    return;
+  }
+  // 방법 2: execCommand fallback
+  execCopy(text, successMsg);
+}
+
+function execCopy(text, successMsg) {
   const el = document.createElement('textarea');
   el.value = text;
-  el.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+  el.setAttribute('readonly', '');
+  el.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0';
   document.body.appendChild(el);
-  el.focus(); el.select();
+  el.focus();
+  el.select();
+  el.setSelectionRange(0, 99999); // 모바일 대응
   try {
-    document.execCommand('copy');
-    showToast('복사 완료!');
+    const ok = document.execCommand('copy');
+    showToast(ok ? successMsg : '복사 실패 — 직접 선택해주세요');
   } catch(e) {
     showToast('복사 실패 — 직접 선택해주세요');
   }
   document.body.removeChild(el);
+}
+
+function fallbackCopy(text) {
+  execCopy(text, '복사 완료!');
 }
 
 function shareAll() {
@@ -1180,69 +1188,74 @@ document.getElementById('myPwInput').addEventListener('keydown',  e => { if(e.ke
   const encoded = params.get('result');
   if (!encoded) return;
 
-  // 탭 전체 숨기고 전용 화면 표시
+  let data;
+  try { data = JSON.parse(decodeURIComponent(atob(encoded))); }
+  catch(e) { return; }
+
+  // 탭 숨기고 전용 화면 표시 (라이트 테마 유지)
   document.querySelector('.tabs').style.display = 'none';
   document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
 
-  let data;
-  try { data = JSON.parse(decodeURIComponent(atob(encoded))); }
-  catch(e) { showDirectResult('error'); return; }
-
-  // 전용 비밀번호 확인 화면 삽입
   const wrap = document.createElement('div');
   wrap.id = 'directResult';
   wrap.style.cssText = 'max-width:420px;margin:0 auto;padding:40px 20px 80px;position:relative;z-index:2';
   wrap.innerHTML = `
     <div style="text-align:center;margin-bottom:32px">
       <div style="font-size:52px;margin-bottom:10px">🎁</div>
-      <h2 style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px">마니또 결과 확인</h2>
-      <p style="font-size:14px;color:var(--sub)">비밀번호를 입력하면 나의 마니또를 확인할 수 있어요</p>
+      <h2 style="font-size:24px;font-weight:800;color:var(--text);margin-bottom:6px;letter-spacing:-0.5px">마니또 결과 확인</h2>
+      <p style="font-size:14px;color:var(--sub)">카톡으로 받은 비밀번호를 입력해주세요</p>
     </div>
-    <div style="background:var(--card);border:1.5px solid var(--border);border-radius:24px;padding:28px 24px;box-shadow:var(--shadow)">
-      <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px">참가자</div>
-      <div style="font-size:20px;font-weight:800;color:var(--text);margin-bottom:24px">${data.giverNick} <span style="font-size:13px;color:var(--sub);font-weight:500">(${data.giver})</span></div>
-      <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px">비밀번호</div>
-      <div style="display:flex;gap:8px;margin-bottom:6px">
-        <input type="text" id="directPwInput" placeholder="비밀번호를 입력하세요"
-          style="flex:1;padding:13px 15px;background:var(--bg2);border:1.5px solid var(--border);border-radius:14px;color:var(--text);font-family:inherit;font-size:14px;outline:none" />
-        <button class="btn btn-primary" id="directPwBtn" style="padding:13px 18px;border-radius:14px;white-space:nowrap">확인</button>
+    <div style="background:var(--card);border:1.5px solid var(--border);border-radius:24px;padding:28px 24px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:14px">
+      <div style="background:var(--bg2);border-radius:14px;padding:14px 16px;text-align:center">
+        <div style="font-size:11px;font-weight:800;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">참가자</div>
+        <div style="font-size:20px;font-weight:800;color:var(--text)">${data.giverNick}</div>
+        <div style="font-size:12px;color:var(--sub2);margin-top:2px">${data.giver}</div>
       </div>
+      <div>
+        <label style="font-size:11px;font-weight:800;color:var(--sub);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:8px">비밀번호 입력</label>
+        <input type="text" id="directPwInput" placeholder="받은 비밀번호를 입력하세요"
+          style="width:100%;padding:13px 15px;background:var(--bg2);border:1.5px solid var(--border);border-radius:14px;color:var(--text);font-family:'Nunito','Nanum Gothic',sans-serif;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s"
+          onfocus="this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 0 3px rgba(232,119,154,.12)'"
+          onblur="this.style.borderColor='var(--border)';this.style.boxShadow='none'" />
+      </div>
+      <button id="directPwBtn" class="btn btn-primary btn-lg" style="margin-top:4px">🎁 내 마니또 확인하기</button>
       <div id="directResultArea"></div>
     </div>
     <div style="text-align:center;margin-top:20px">
-      <a href="${location.href.split('?')[0]}" style="font-size:13px;color:var(--sub);text-decoration:none">← 마니또 뽑기 홈으로</a>
+      <a href="${location.href.split('?')[0]}" style="font-size:13px;color:var(--sub2);text-decoration:none">← 마니또 뽑기 홈으로</a>
     </div>
   `;
   document.body.appendChild(wrap);
 
   function doCheck() {
-    const input = document.getElementById('directPwInput').value.trim();
-    const area  = document.getElementById('directResultArea');
-    if (!input) { showToast('비밀번호를 입력해주세요!'); return; }
-    if (input !== data.pw) {
-      area.innerHTML = `<div class="warn-box" style="margin-top:12px">❌ 비밀번호가 틀렸습니다!</div>`;
+    const pwInput = document.getElementById('directPwInput').value.trim();
+    const area    = document.getElementById('directResultArea');
+
+    if (!pwInput) { showToast('비밀번호를 입력해주세요!'); return; }
+    if (pwInput !== data.pw) {
+      area.innerHTML = `<div class="warn-box">❌ 비밀번호가 틀렸습니다. 다시 확인해주세요!</div>`;
       return;
     }
-    // 비밀번호 일치 시에만 XOR 복호화
+
+    // 비밀번호 일치 시 XOR 복호화
     const receiverNick = atob(data.enc).split('').map((c, i2) =>
       String.fromCharCode(c.charCodeAt(0) ^ data.pw.charCodeAt(i2 % data.pw.length))
     ).join('');
 
     area.innerHTML = `
-      <div style="margin-top:16px;padding:24px 20px;background:linear-gradient(135deg,rgba(232,119,154,.1),rgba(240,168,150,.08));border:1.5px solid rgba(232,119,154,.25);border-radius:18px;text-align:center;animation:slideUp .4s ease">
-        <div style="font-size:13px;color:var(--sub);margin-bottom:8px">나의 마니또는...</div>
-        <div style="font-size:34px;font-weight:900;color:var(--accent);letter-spacing:-1px;margin-bottom:4px">🎁 ${receiverNick} 🎁</div>
-        <div style="font-size:12px;color:var(--sub2);margin-top:8px">소중한 선물 부탁드려요 😊</div>
+      <div style="padding:24px 20px;background:linear-gradient(135deg,rgba(232,119,154,.1),rgba(240,168,150,.08));border:1.5px solid rgba(232,119,154,.25);border-radius:18px;text-align:center;animation:slideUp .4s ease">
+        <div style="font-size:13px;color:var(--sub);margin-bottom:8px">${data.giverNick}님의 마니또는...</div>
+        <div style="font-size:34px;font-weight:900;color:var(--accent);letter-spacing:-1px;margin-bottom:6px">🎁 ${receiverNick} 🎁</div>
+        <div style="font-size:12px;color:var(--sub2)">소중한 선물 부탁드려요 😊</div>
       </div>
     `;
     document.getElementById('directPwInput').disabled = true;
     document.getElementById('directPwBtn').disabled = true;
+    document.getElementById('directPwBtn').style.opacity = '0.5';
   }
 
   document.getElementById('directPwBtn').addEventListener('click', doCheck);
-  document.getElementById('directPwInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') doCheck();
-  });
+  document.getElementById('directPwInput').addEventListener('keydown', e => { if (e.key === 'Enter') doCheck(); });
 })();
 
 function updateTasteCount() {
