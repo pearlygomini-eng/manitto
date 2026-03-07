@@ -789,6 +789,14 @@ function renderResult() {
   updateMyNameSelect();
 }
 
+function base64EncodeUnicode(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
+function base64DecodeUnicode(str) {
+  return decodeURIComponent(escape(atob(str)));
+}
+
 // ── 공유 기능 ──
 function makeIndividualUrl(m) {
   // enc: 마니또 닉네임을 비밀번호로 XOR 암호화 (한글 안전하게 처리)
@@ -798,13 +806,13 @@ function makeIndividualUrl(m) {
     String.fromCharCode(c.charCodeAt(0) ^ pwKey.charCodeAt(i2 % pwKey.length))
   ).join(''));
 
-  const data = btoa(encodeURIComponent(JSON.stringify({
+  const data = base64EncodeUnicode(JSON.stringify({
     giver: m.giver.id,
     giverNick: m.giver.nick,
     pw: m.pw,
     enc: enc
-  })));
-  return location.href.split('?')[0] + '?result=' + data;
+  }));
+  return location.href.split('?')[0] + '?result=' + encodeURIComponent(data);
 }
 
 function makeShareText(m) {
@@ -861,7 +869,7 @@ function fallbackCopy(text) {
 }
 
 function shareAll() {
-  const data = btoa(encodeURIComponent(JSON.stringify(
+  const data = base64EncodeUnicode(JSON.stringify(
     matches.map(m => ({ g:m.giver.id, gn:m.giver.nick, r:m.receiver.id, rn:m.receiver.nick, pw:m.pw }))
   )));
   navigator.clipboard.writeText(location.href.split('?')[0] + '?all=' + data)
@@ -1134,7 +1142,7 @@ function clearAllConfirm() {
   const params = new URLSearchParams(location.search);
   if (params.has('result')) {
     try {
-      const data = JSON.parse(decodeURIComponent(atob(params.get('result'))));
+      const data = JSON.parse(base64DecodeUnicode(decodeURIComponent(params.get('result'))));
       document.querySelector('.tabs').style.display = 'none';
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       const div = document.createElement('div');
@@ -1198,7 +1206,7 @@ document.getElementById('myPwInput').addEventListener('keydown',  e => { if(e.ke
   if (!encoded) return;
 
   let data;
-  try { data = JSON.parse(decodeURIComponent(atob(encoded))); }
+  try { data = JSON.parse(base64DecodeUnicode(decodeURIComponent(encoded))); }
   catch(e) { return; }
 
   // 탭 숨기고 전용 화면 표시 (라이트 테마 유지)
@@ -1248,7 +1256,7 @@ document.getElementById('myPwInput').addEventListener('keydown',  e => { if(e.ke
 
     // 비밀번호 일치 시 XOR 복호화
     const pwKey = data.pw;
-    const receiverNick = decodeURIComponent(atob(data.enc).split('').map((c, i2) =>
+    const receiverNick = decodeURIComponent(base64DecodeUnicode(data.enc).split('').map((c, i2) =>
       String.fromCharCode(c.charCodeAt(0) ^ pwKey.charCodeAt(i2 % pwKey.length))
     ).join(''));
 
