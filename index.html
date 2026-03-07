@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>마니또 뽑기 사이트</title>
+  <title>카카오페이증권 C&R 마니또 뽑기</title>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
@@ -381,7 +381,7 @@
 
 <!-- ══ TAB 1: 참가자 설정 ══ -->
 <div id="tab-setup" class="page active">
-  <h2 class="page-title">🎉 마니또 뽑기</h2>
+  <h2 class="page-title">🎉 카카오페이증권 C&R 마니또 뽑기</h2>
 
   <div class="team-hint">
     <strong>팀명을 입력하면 같은 팀끼리는 마니또 매칭에서 자동으로 제외됩니다.</strong><br>
@@ -422,15 +422,15 @@
   <div class="divider">직접 입력</div>
 
   <div class="input-row">
-    <input type="text" id="nameInput" placeholder="영어 아이디 (예: jayce.wh)" />
+    <input type="text" id="nameInput" placeholder="영어 아이디 (예: sienna.on)" />
     <input type="text" id="nickInput" placeholder="닉네임" style="max-width:100px"/>
   </div>
   <div class="input-row">
     <input type="text" id="teamInput" placeholder="팀명 (선택사항)" style="max-width:130px"/>
-    <input type="text" id="tasteInput" placeholder="예: 아메리카노, INFP, A형, 단 것, 최근 관심사..." maxlength="200" oninput="updateTasteCount()" />
+    <input type="text" id="tasteInput" placeholder="예: 아메리카노, INFP, A형, 단 것, 최근 관심사..." maxlength="300" oninput="updateTasteCount()" />
   </div>
   <div style="text-align:right;font-size:11px;color:var(--sub);margin-top:-4px;margin-bottom:6px">
-    <span id="tasteCount">0</span> / 200자
+    <span id="tasteCount">0</span> / 300자
   </div>
   <div style="background:rgba(245,166,35,.07);border:1.5px solid rgba(245,166,35,.2);border-radius:14px;padding:11px 14px;font-size:12px;color:var(--sub);line-height:1.9;margin-bottom:4px">
     💡 <strong style="color:var(--yellow)">취향 예시</strong><br>
@@ -769,12 +769,21 @@ function renderResult() {
     const tasteBox = m.receiver.taste
       ? `<div style="margin:6px 0 14px;padding:10px 13px;background:rgba(245,166,35,.08);border:1.5px solid rgba(245,166,35,.22);border-radius:12px;font-size:12px">
            <span style="color:var(--yellow);font-weight:700">🎁 마니또 취향 </span>
-           <span style="color:var(--text)">${m.receiver.taste}</span>
+           <span style="color:var(--text);white-space:pre-line">${m.receiver.taste}</span>
          </div>`
       : '';
     return `<div class="card" style="animation-delay:${i * .06}s">
-      <div class="card-name">${m.giver.id}(${m.giver.nick})</div>
-      ${teamBadge}
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap">
+        <span style="font-size:15px;font-weight:800;color:var(--text)">${m.giver.id}</span>
+        <span style="font-size:13px;color:var(--sub)">(${m.giver.nick})</span>
+        ${m.giver.team ? `<span class="card-team-badge" style="background:${color}22;color:${color};border:1px solid ${color}55"><span style="width:7px;height:7px;border-radius:50%;background:${color};display:inline-block"></span>${m.giver.team}</span>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="font-size:13px;color:var(--sub)">마니또</span>
+        <span style="font-size:16px;font-weight:900;color:var(--accent)">→</span>
+        <span style="font-size:15px;font-weight:800;color:var(--accent)">${m.receiver.id}</span>
+        <span style="font-size:13px;color:var(--sub)">(${m.receiver.nick})</span>
+      </div>
       ${tasteBox}
       <div class="card-pw">비밀번호: <span>${m.pw}</span></div>
       <div class="card-actions">
@@ -897,8 +906,8 @@ function checkMyResult() {
 
   const tasteSection = match.receiver.taste
     ? `<div style="margin-top:16px;padding:13px 15px;background:rgba(245,166,35,.08);border:1.5px solid rgba(245,166,35,.22);border-radius:14px;text-align:left">
-         <div style="font-size:12px;color:var(--yellow);font-weight:700;margin-bottom:5px">🎁 마니또 취향</div>
-         <div style="font-size:14px;color:var(--text);line-height:1.65;font-weight:500">${match.receiver.taste}</div>
+         <div style="font-size:12px;color:var(--yellow);font-weight:700;margin-bottom:8px">🎁 마니또 취향</div>
+         <div style="font-size:14px;color:var(--text);line-height:1.9;font-weight:500;white-space:pre-line">${match.receiver.taste}</div>
        </div>`
     : '';
 
@@ -1220,7 +1229,7 @@ document.getElementById('myPwInput').addEventListener('keydown',  e => { if(e.ke
     const tasteHtml = receiverTaste
       ? `<div style="margin-top:14px;padding:12px 14px;background:rgba(255,191,0,.1);border-radius:12px;text-align:left">
            <div style="font-size:11px;font-weight:800;color:var(--yellow);margin-bottom:4px">🎁 마니또 취향</div>
-           <div style="font-size:13px;color:var(--text);line-height:1.6">${receiverTaste}</div>
+           <div style="font-size:13px;color:var(--text);line-height:1.9;white-space:pre-line">${receiverTaste}</div>
          </div>` : '';
 
     area.innerHTML = `
@@ -1244,7 +1253,7 @@ function updateTasteCount() {
   const len = document.getElementById('tasteInput').value.length;
   const el = document.getElementById('tasteCount');
   el.textContent = len;
-  el.style.color = len >= 180 ? 'var(--red)' : len >= 140 ? 'var(--yellow)' : 'var(--sub)';
+  el.style.color = len >= 280 ? 'var(--red)' : len >= 220 ? 'var(--yellow)' : 'var(--sub)';
 }
 
 // ── 배경 파티클 ──
