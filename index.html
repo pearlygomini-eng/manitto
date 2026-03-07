@@ -1160,6 +1160,72 @@ document.getElementById('teamInput').addEventListener('keydown',  e => { if(e.ke
 document.getElementById('tasteInput').addEventListener('keydown', e => { if(e.key==='Enter') addParticipant(); });
 document.getElementById('myPwInput').addEventListener('keydown',  e => { if(e.key==='Enter') checkMyResult(); });
 
+// ── URL 파라미터로 개인 결과 직접 확인 ──
+(function() {
+  const params = new URLSearchParams(location.search);
+  const encoded = params.get('result');
+  if (!encoded) return;
+
+  // 탭 전체 숨기고 전용 화면 표시
+  document.querySelector('.tabs').style.display = 'none';
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+
+  let data;
+  try { data = JSON.parse(decodeURIComponent(atob(encoded))); }
+  catch(e) { showDirectResult('error'); return; }
+
+  // 전용 비밀번호 확인 화면 삽입
+  const wrap = document.createElement('div');
+  wrap.id = 'directResult';
+  wrap.style.cssText = 'max-width:420px;margin:0 auto;padding:40px 20px 80px;position:relative;z-index:2';
+  wrap.innerHTML = `
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="font-size:52px;margin-bottom:10px">🎁</div>
+      <h2 style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px">마니또 결과 확인</h2>
+      <p style="font-size:14px;color:var(--sub)">비밀번호를 입력하면 나의 마니또를 확인할 수 있어요</p>
+    </div>
+    <div style="background:var(--card);border:1.5px solid var(--border);border-radius:24px;padding:28px 24px;box-shadow:var(--shadow)">
+      <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px">참가자</div>
+      <div style="font-size:20px;font-weight:800;color:var(--text);margin-bottom:24px">${data.giverNick} <span style="font-size:13px;color:var(--sub);font-weight:500">(${data.giver})</span></div>
+      <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px">비밀번호</div>
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <input type="text" id="directPwInput" placeholder="비밀번호를 입력하세요"
+          style="flex:1;padding:13px 15px;background:var(--bg2);border:1.5px solid var(--border);border-radius:14px;color:var(--text);font-family:inherit;font-size:14px;outline:none" />
+        <button class="btn btn-primary" onclick="checkDirectPw('${data.pw}','${data.receiverNick}')" style="padding:13px 18px;border-radius:14px;white-space:nowrap">확인</button>
+      </div>
+      <div id="directResultArea"></div>
+    </div>
+    <div style="text-align:center;margin-top:20px">
+      <a href="${location.href.split('?')[0]}" style="font-size:13px;color:var(--sub);text-decoration:none">← 마니또 뽑기 홈으로</a>
+    </div>
+  `;
+  document.body.appendChild(wrap);
+
+  document.getElementById('directPwInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') checkDirectPw(data.pw, data.receiverNick);
+  });
+})();
+
+function checkDirectPw(correctPw, receiverNick) {
+  const input = document.getElementById('directPwInput').value.trim();
+  const area  = document.getElementById('directResultArea');
+  if (!input) { showToast('비밀번호를 입력해주세요!'); return; }
+
+  if (input !== correctPw) {
+    area.innerHTML = `<div class="warn-box" style="margin-top:12px">❌ 비밀번호가 틀렸습니다!</div>`;
+    return;
+  }
+
+  area.innerHTML = `
+    <div style="margin-top:16px;padding:24px 20px;background:linear-gradient(135deg,rgba(232,119,154,.1),rgba(240,168,150,.08));border:1.5px solid rgba(232,119,154,.25);border-radius:18px;text-align:center;animation:slideUp .4s ease">
+      <div style="font-size:13px;color:var(--sub);margin-bottom:8px">나의 마니또는...</div>
+      <div style="font-size:34px;font-weight:900;color:var(--accent);letter-spacing:-1px;margin-bottom:4px">🎁 ${receiverNick} 🎁</div>
+      <div style="font-size:12px;color:var(--sub2);margin-top:8px">소중한 선물 부탁드려요 😊</div>
+    </div>
+  `;
+  document.getElementById('directPwInput').disabled = true;
+}
+
 function updateTasteCount() {
   const len = document.getElementById('tasteInput').value.length;
   const el = document.getElementById('tasteCount');
