@@ -538,6 +538,26 @@ function base64DecodeUnicode(str) {
   return decodeURIComponent(escape(atob(str)));
 }
 
+function xorEncodeWithKey(text, key) {
+  const source = String(text ?? '');
+  const safeKey = String(key ?? '');
+  if (!safeKey) return base64EncodeUnicode(source);
+  const encoded = source.split('').map((char, idx) =>
+    String.fromCharCode(char.charCodeAt(0) ^ safeKey.charCodeAt(idx % safeKey.length))
+  ).join('');
+  return base64EncodeUnicode(encoded);
+}
+
+function xorDecodeWithKey(encodedText, key) {
+  const safeEncoded = String(encodedText ?? '');
+  const safeKey = String(key ?? '');
+  const decoded = base64DecodeUnicode(safeEncoded);
+  if (!safeKey) return decoded;
+  return decoded.split('').map((char, idx) =>
+    String.fromCharCode(char.charCodeAt(0) ^ safeKey.charCodeAt(idx % safeKey.length))
+  ).join('');
+}
+
 function getBasePageUrl() {
   return location.origin + location.pathname;
 }
