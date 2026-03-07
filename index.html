@@ -791,13 +791,18 @@ function renderResult() {
 
 // ── 공유 기능 ──
 function makeIndividualUrl(m) {
+  // enc: 마니또 닉네임을 비밀번호로 XOR 암호화 (한글 안전하게 처리)
+  const receiverEncoded = encodeURIComponent(m.receiver.nick);
+  const pwKey = m.pw;
+  const enc = btoa(receiverEncoded.split('').map((c, i2) =>
+    String.fromCharCode(c.charCodeAt(0) ^ pwKey.charCodeAt(i2 % pwKey.length))
+  ).join(''));
+
   const data = btoa(encodeURIComponent(JSON.stringify({
     giver: m.giver.id,
     giverNick: m.giver.nick,
     pw: m.pw,
-    enc: btoa(m.receiver.nick.split('').map((c,i2) =>
-      String.fromCharCode(c.charCodeAt(0) ^ m.pw.charCodeAt(i2 % m.pw.length))
-    ).join(''))
+    enc: enc
   })));
   return location.href.split('?')[0] + '?result=' + data;
 }
@@ -808,8 +813,12 @@ function makeShareText(m) {
 }
 
 function shareKakao(i) {
-  const text = makeShareText(matches[i]);
-  copyToClipboard(text, '카톡 메시지 복사 완료!');
+  try {
+    const text = makeShareText(matches[i]);
+    copyToClipboard(text, '복사 완료! 카톡에 붙여넣기 하세요 😊');
+  } catch(e) {
+    showToast('오류: ' + e.message);
+  }
 }
 
 function copyIndividual(i) {
@@ -1238,9 +1247,10 @@ document.getElementById('myPwInput').addEventListener('keydown',  e => { if(e.ke
     }
 
     // 비밀번호 일치 시 XOR 복호화
-    const receiverNick = atob(data.enc).split('').map((c, i2) =>
-      String.fromCharCode(c.charCodeAt(0) ^ data.pw.charCodeAt(i2 % data.pw.length))
-    ).join('');
+    const pwKey = data.pw;
+    const receiverNick = decodeURIComponent(atob(data.enc).split('').map((c, i2) =>
+      String.fromCharCode(c.charCodeAt(0) ^ pwKey.charCodeAt(i2 % pwKey.length))
+    ).join(''));
 
     area.innerHTML = `
       <div style="padding:24px 20px;background:linear-gradient(135deg,rgba(232,119,154,.1),rgba(240,168,150,.08));border:1.5px solid rgba(232,119,154,.25);border-radius:18px;text-align:center;animation:slideUp .4s ease">
