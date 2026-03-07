@@ -1176,16 +1176,21 @@ function renderDirectResultPage(data) {
       return;
     }
 
-    const pwKey = data.pw;
-    const receiverNick = decodeURIComponent(base64DecodeUnicode(data.enc).split('').map((c, i2) =>
-      String.fromCharCode(c.charCodeAt(0) ^ pwKey.charCodeAt(i2 % pwKey.length))
-    ).join(''));
+    const receiverNick = decodeURIComponent(xorDecodeWithKey(data.encNick, data.pw));
+    const receiverTaste = data.encTaste ? decodeURIComponent(xorDecodeWithKey(data.encTaste, data.pw)) : '';
+    const tasteSection = receiverTaste
+      ? `<div style="margin-top:14px;padding:14px 15px;background:rgba(245,166,35,.08);border:1.5px solid rgba(245,166,35,.22);border-radius:14px;text-align:left">
+           <div style="font-size:12px;color:var(--yellow);font-weight:800;margin-bottom:6px">🎁 마니또 취향</div>
+           <div style="font-size:14px;color:var(--text);line-height:1.65;font-weight:600;word-break:keep-all">${escapeHtml(receiverTaste)}</div>
+         </div>`
+      : '';
 
     area.innerHTML = `
       <div style="padding:24px 20px;background:linear-gradient(135deg,rgba(232,119,154,.1),rgba(240,168,150,.08));border:1.5px solid rgba(232,119,154,.25);border-radius:18px;text-align:center;animation:slideUp .4s ease">
         <div style="font-size:13px;color:var(--sub);margin-bottom:8px">${escapeHtml(data.giverNick)}님의 마니또는...</div>
-        <div style="font-size:34px;font-weight:900;color:var(--accent);letter-spacing:-1px;margin-bottom:6px">🎁 ${escapeHtml(receiverNick)} 🎁</div>
+        <div style="font-size:34px;font-weight:900;color:var(--accent);letter-spacing:-1px;margin-bottom:6px;word-break:keep-all">🎁 ${escapeHtml(receiverNick)} 🎁</div>
         <div style="font-size:12px;color:var(--sub2)">소중한 선물 부탁드려요 😊</div>
+        ${tasteSection}
       </div>
     `;
     document.getElementById('directPwInput').disabled = true;
