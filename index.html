@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>마니또 뽑기 사이트</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #fdf0f2;
+      --bg2: #fce8ec;
+      --card: #ffffff;
+      --border: #f0d6dc;
+      --accent: #e8779a;
+      --accent2: #f0a896;
+      --accent-light: #fde8ee;
+      --yellow: #f5a623;
+      --text: #3d1f2d;
+      --sub: #9e7a87;
+      --sub2: #c9a8b2;
+      --kakao: #fee500;
+      --kakao-text: #191919;
+      --red: #e85555;
+      --red-light: #fdeaea;
+      --green: #3dbf8a;
+      --green-light: #e6f8f2;
+      --shadow: 0 4px 24px rgba(180,80,110,.10);
+      --shadow-hover: 0 12px 44px rgba(180,80,110,.22);
+    }
+
+    body {
+      font-family: 'Nunito', 'Nanum Gothic', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* 배경 메시 그라데이션 — QClay 스타일 */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 70% 55% at 15% 8%, rgba(242,167,187,.38) 0%, transparent 55%),
+        radial-gradient(ellipse 55% 65% at 88% 85%, rgba(245,197,184,.42) 0%, transparent 55%),
+        radial-gradient(ellipse 45% 45% at 55% 45%, rgba(255,220,230,.22) 0%, transparent 60%);
+    }
+
+    #bgCanvas { display: none; }
+
+    /* ── 탭 ── */
+    .tabs {
+      display: flex;
+      background: rgba(255,255,255,0.85);
+      border-bottom: 1.5px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 2px 12px rgba(180,80,110,.07);
+      z-index: 101;
+    }
+    .tab-btn {
+      flex: 1; padding: 14px 4px;
+      border: none; background: transparent;
+      color: var(--sub);
+      font-family: 'Nunito', sans-serif;
+      font-size: 11.5px; font-weight: 700;
+      cursor: pointer; transition: all .2s;
+      border-bottom: 3px solid transparent;
+      line-height: 1.3;
+    }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(232,119,154,.04); }
+    .tab-btn:hover:not(.active) { color: var(--text); background: rgba(232,119,154,.03); }
+
+    .page { display: none; position: relative; z-index: 2; padding: 24px 16px 80px; max-width: 480px; margin: 0 auto; }
+    .page.active { display: block; }
+
+    .page-title {
+      font-family: 'Nunito', sans-serif;
+      font-size: 24px; font-weight: 800;
+      text-align: center; margin: 10px 0 24px;
+      color: var(--text);
+      letter-spacing: -0.5px;
+    }
+
+    /* ── 입력 ── */
+    .input-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    input[type="text"] {
+      flex: 1; padding: 12px 15px;
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 14px; color: var(--text);
+      font-family: 'Nunito', 'Nanum Gothic', sans-serif; font-size: 14px;
+      outline: none; transition: border-color .2s, box-shadow .2s;
+      box-shadow: var(--shadow);
+    }
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(232,119,154,.12);
+    }
+    input[type="text"]::placeholder { color: var(--sub2); }
+
+    .btn {
+      padding: 12px 18px; border: none; border-radius: 14px;
+      font-family: 'Nunito', 'Nanum Gothic', sans-serif;
+      font-size: 13px; font-weight: 700; cursor: pointer;
+      transition: all .18s; white-space: nowrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      color: #fff; box-shadow: 0 4px 16px rgba(232,119,154,.35);
+    }
+    .btn-primary:hover { opacity: .9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(232,119,154,.45); }
+    .btn-outline {
+      background: var(--card); border: 1.5px solid var(--accent);
+      color: var(--accent); box-shadow: var(--shadow);
+    }
+    .btn-outline:hover { background: var(--accent-light); }
+    .btn-danger {
+      background: var(--red-light); color: var(--red);
+      border: 1.5px solid rgba(232,85,85,.2);
+    }
+    .btn-danger:hover { background: #fad5d5; }
+    .btn-green {
+      background: linear-gradient(135deg, var(--green), #2da870);
+      color: #fff; box-shadow: 0 4px 16px rgba(61,191,138,.3);
+    }
+    .btn-green:hover { opacity: .9; transform: translateY(-1px); }
+    .btn-kakao { background: var(--kakao); color: var(--kakao-text); border-radius: 14px; }
+    .btn-lg { width: 100%; padding: 15px; font-size: 15px; border-radius: 16px; margin-top: 8px; }
+
+    /* ── 참가자 태그 ── */
+    .participant-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; min-height: 40px; }
+    .p-tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 20px; padding: 6px 12px 6px 9px;
+      font-size: 13px; animation: popIn .2s ease;
+      box-shadow: var(--shadow);
+      color: var(--text);
+    }
+    .team-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    @keyframes popIn { from { transform:scale(.7); opacity:0 } to { transform:scale(1); opacity:1 } }
+    .remove-btn {
+      background: none; border: none; color: var(--sub2);
+      cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px;
+      transition: color .15s;
+    }
+    .remove-btn:hover { color: var(--red); }
+
+    .count-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; border-radius: 20px; padding: 2px 10px;
+      font-size: 12px; font-weight: 700; margin-left: 6px;
+    }
+    .section-label {
+      font-size: 11px; font-weight: 800; color: var(--sub);
+      letter-spacing: 1.2px; text-transform: uppercase;
+      margin: 22px 0 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-label::after { content:''; flex:1; height:1.5px; background:var(--border); border-radius:2px; }
+
+    /* ── 팀 힌트 박스 ── */
+    .team-hint {
+      background: rgba(232,119,154,.07); border: 1.5px solid rgba(232,119,154,.18);
+      border-radius: 14px; padding: 13px 15px; font-size: 13px;
+      color: var(--sub); margin-bottom: 16px; line-height: 1.75;
+    }
+    .team-hint strong { color: var(--accent); }
+
+    /* ── 팀 현황 그룹 ── */
+    .team-group {
+      background: var(--card); border: 1.5px solid var(--border);
+      border-left-width: 4px;
+      border-radius: 16px; padding: 16px; margin-bottom: 10px;
+      box-shadow: var(--shadow);
+    }
+    .team-group-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .team-group-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .team-group-name { font-weight: 800; font-size: 14px; color: var(--text); }
+    .team-group-count { font-size: 12px; color: var(--sub); margin-left: auto; font-weight: 600; }
+    .team-group-members { display: flex; flex-wrap: wrap; gap: 6px; }
+    .team-member-chip {
+      font-size: 12px; padding: 4px 11px; border-radius: 20px;
+      background: var(--accent-light); color: var(--accent); font-weight: 600;
+    }
+
+    /* ── 결과 카드 ── */
+    .card {
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 24px; padding: 22px; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+      transition: transform .2s, box-shadow .2s;
+      animation: slideUp .35s ease both;
+    }
+    .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+    @keyframes slideUp { from { opacity:0; transform:translateY(22px) } to { opacity:1; transform:translateY(0) } }
+    .card-name {
+      font-size: 18px; font-weight: 800; margin-bottom: 5px;
+      color: var(--text); letter-spacing: -0.3px;
+    }
+    .card-team-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; padding: 3px 10px; border-radius: 20px;
+      margin-bottom: 10px; font-weight: 700;
+    }
+    .card-pw {
+      font-size: 13px; color: var(--sub); margin-bottom: 16px;
+      background: var(--bg); border-radius: 10px; padding: 8px 12px;
+    }
+    .card-pw span { color: var(--accent); font-weight: 800; font-size: 15px; }
+    .card-actions { display: flex; gap: 8px; }
+    .card-actions .btn { flex: 1; font-size: 12px; padding: 10px 8px; }
+    .result-link-box {
+      background: var(--bg); border: 1.5px solid var(--border);
+      border-radius: 10px; padding: 10px 12px; font-size: 12px;
+      color: var(--sub); word-break: break-all; margin-top: 10px; display: none;
+    }
+    .result-link-box.show { display: block; animation: popIn .2s; }
+
+    .result-header { text-align: center; padding: 10px 0 20px; }
+    .result-header .emoji-big { font-size: 52px; display: block; margin-bottom: 8px; }
+
+    .bottom-actions { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+
+    /* ── 정보/경고 박스 ── */
+    .warn-box {
+      background: var(--red-light); border: 1.5px solid rgba(232,85,85,.2);
+      border-radius: 12px; padding: 11px 15px; font-size: 13px;
+      color: var(--red); margin-bottom: 14px; font-weight: 600;
+    }
+    .info-box {
+      background: rgba(232,119,154,.06); border: 1.5px solid rgba(232,119,154,.18);
+      border-radius: 14px; padding: 13px 15px; font-size: 13px;
+      color: var(--sub); margin-bottom: 14px; line-height: 1.65;
+    }
+    .info-box strong { color: var(--accent); }
+
+    /* ── 엑셀 업로드 영역 ── */
+    .upload-section {
+      border: 2px dashed rgba(232,119,154,.35);
+      border-radius: 18px; padding: 26px 16px;
+      text-align: center;
+      background: rgba(232,119,154,.04);
+      cursor: pointer; transition: all .2s;
+      margin-bottom: 10px; position: relative;
+    }
+    .upload-section:hover, .upload-section.drag-over {
+      border-color: var(--accent);
+      background: rgba(232,119,154,.09);
+    }
+    .upload-section input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .upload-icon { font-size: 34px; margin-bottom: 8px; }
+    .upload-label { font-size: 14px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+    .upload-sub { font-size: 12px; color: var(--sub2); }
+
+    .upload-preview {
+      background: var(--green-light); border: 1.5px solid rgba(61,191,138,.25);
+      border-radius: 14px; padding: 14px 16px; margin-bottom: 10px;
+      font-size: 13px; display: none;
+    }
+    .upload-preview.show { display: block; animation: popIn .2s; }
+    .upload-preview-title { font-weight: 700; color: var(--green); margin-bottom: 10px; display:flex; align-items:center; gap:6px; }
+    .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .preview-table th {
+      background: rgba(61,191,138,.12); color: var(--green);
+      padding: 7px 9px; text-align: left; font-weight: 700;
+      border-bottom: 1.5px solid rgba(61,191,138,.2);
+    }
+    .preview-table td {
+      padding: 6px 9px; border-bottom: 1px solid rgba(61,191,138,.1); color: var(--text);
+    }
+    .preview-table tr:last-child td { border-bottom: none; }
+    .preview-more { font-size: 11px; color: var(--sub); margin-top: 6px; text-align:center; }
+
+    .upload-error {
+      background: var(--red-light); border: 1.5px solid rgba(232,85,85,.2);
+      border-radius: 12px; padding: 10px 14px; font-size: 13px;
+      color: var(--red); margin-bottom: 10px; display: none;
+    }
+    .upload-error.show { display: block; }
+
+    .divider {
+      display: flex; align-items: center; gap: 10px;
+      margin: 18px 0; color: var(--sub2); font-size: 12px; font-weight: 700;
+    }
+    .divider::before, .divider::after { content:''; flex:1; height:1.5px; background:var(--border); }
+
+    /* ── 토스트 ── */
+    .toast {
+      position: fixed; bottom: 32px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--text); color: #fff;
+      padding: 12px 24px; border-radius: 30px;
+      font-size: 14px; font-weight: 700;
+      box-shadow: 0 8px 28px rgba(61,31,45,.25);
+      z-index: 999; transition: transform .3s ease; white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── 모달 ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(61,31,45,.4);
+      backdrop-filter: blur(8px); z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity .25s;
+    }
+    .modal-overlay.show { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 24px; padding: 30px 26px;
+      max-width: 340px; width: 90%; text-align: center;
+      box-shadow: 0 20px 60px rgba(61,31,45,.2);
+      transform: scale(.88); transition: transform .25s;
+    }
+    .modal-overlay.show .modal { transform: scale(1); }
+    .modal h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; color: var(--text); }
+    .modal p { font-size: 14px; color: var(--sub); margin-bottom: 22px; line-height: 1.65; white-space: pre-line; }
+    .modal-actions { display: flex; gap: 10px; }
+    .modal-actions .btn { flex: 1; }
+
+    /* ── reveal 카드 ── */
+    .reveal-card {
+      background: linear-gradient(135deg, rgba(232,119,154,.12), rgba(240,168,150,.08));
+      border: 1.5px solid rgba(232,119,154,.25);
+      border-radius: 24px; padding: 30px 24px; text-align: center; margin-bottom: 14px;
+      animation: slideUp .4s ease;
+      box-shadow: var(--shadow);
+    }
+    .reveal-card .my-name { font-size: 24px; font-weight: 800; color: var(--text); }
+    .reveal-card .arrow-reveal { font-size: 28px; margin: 12px 0; }
+    .reveal-card .target-name {
+      font-size: 30px; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+    .reveal-card .hint { font-size: 12px; color: var(--sub2); margin-top: 6px; font-weight: 500; }
+
+    /* ── 내 결과 탭 ── */
+    .pw-check-form label { font-size: 12px; font-weight: 700; color: var(--sub); display: block; margin-bottom: 6px; letter-spacing: .5px; text-transform: uppercase; }
+    .pw-check-row { display: flex; gap: 8px; margin-bottom: 16px; }
+
+    select {
+      flex: 1; padding: 12px 14px;
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 14px; color: var(--text);
+      font-family: 'Nunito', 'Nanum Gothic', sans-serif; font-size: 13px;
+      outline: none; cursor: pointer; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239e7a87' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+      box-shadow: var(--shadow);
+    }
+    select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232,119,154,.12); }
+    option { background: #fff; color: var(--text); }
+
+    footer {
+      text-align: center; padding: 32px 20px;
+      color: var(--sub2); font-size: 12px; line-height: 1.8;
+      position: relative; z-index: 1;
+    }
+    footer strong { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+
+<!-- 탭 -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('setup')">👥 참가자</button>
+  <button class="tab-btn" onclick="switchTab('teams')">🏷️ 팀 현황</button>
+  <button class="tab-btn" onclick="switchTab('result')">🎉 매칭 결과</button>
+  <button class="tab-btn" onclick="switchTab('myresult')">🔍 내 결과</button>
+</div>
+
+<!-- ══ TAB 1: 참가자 설정 ══ -->
+<div id="tab-setup" class="page active">
+  <h2 class="page-title">🎉 마니또 뽑기</h2>
+
+  <div class="team-hint">
+    <strong>팀명을 입력하면 같은 팀끼리는 마니또 매칭에서 자동으로 제외됩니다.</strong><br>
+    팀이 없으면 팀명을 비워두세요. 팀명이 같으면 같은 팀으로 묶입니다.
+  </div>
+
+  <!-- 엑셀 업로드 -->
+  <div class="section-label">📊 엑셀 파일로 일괄 추가</div>
+  <div class="upload-section" id="uploadSection"
+       ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+    <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" onchange="handleFileSelect(event)">
+    <div class="upload-icon">📂</div>
+    <div class="upload-label">엑셀 파일을 클릭하거나 드래그하여 업로드</div>
+    <div class="upload-sub">.xlsx / .xls / .csv 지원 · 열 순서: 영어아이디, 닉네임, 팀명</div>
+  </div>
+
+  <div class="upload-error" id="uploadError"></div>
+
+  <div class="upload-preview" id="uploadPreview">
+    <div class="upload-preview-title">
+      <span>✅</span><span id="previewTitle"></span>
+    </div>
+    <table class="preview-table">
+      <thead><tr><th>영어아이디</th><th>닉네임</th><th>팀명</th><th>취향</th></tr></thead>
+      <tbody id="previewBody"></tbody>
+    </table>
+    <div class="preview-more" id="previewMore"></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-green" style="flex:1" id="confirmImportBtn" onclick="confirmImport()">✅ 추가하기</button>
+      <button class="btn btn-danger" style="flex:1" onclick="cancelImport()">✕ 취소</button>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-top:8px">
+    <button class="btn btn-outline btn-lg" style="flex:1;margin-top:0;font-size:12px" onclick="downloadTemplate()">⬇️ 양식 다운로드</button>
+  </div>
+
+  <div class="divider">직접 입력</div>
+
+  <div class="input-row">
+    <input type="text" id="nameInput" placeholder="영어 아이디 (예: jayce.wh)" />
+    <input type="text" id="nickInput" placeholder="닉네임" style="max-width:100px"/>
+  </div>
+  <div class="input-row">
+    <input type="text" id="teamInput" placeholder="팀명 (선택사항)" style="max-width:130px"/>
+    <input type="text" id="tasteInput" placeholder="예: 아메리카노, INFP, A형, 단 것, 최근 관심사..." maxlength="200" oninput="updateTasteCount()" />
+  </div>
+  <div style="text-align:right;font-size:11px;color:var(--sub);margin-top:-4px;margin-bottom:6px">
+    <span id="tasteCount">0</span> / 200자
+  </div>
+  <div style="background:rgba(245,166,35,.07);border:1.5px solid rgba(245,166,35,.2);border-radius:14px;padding:11px 14px;font-size:12px;color:var(--sub);line-height:1.9;margin-bottom:4px">
+    💡 <strong style="color:var(--yellow)">취향 예시</strong><br>
+    좋아하는 간식 · 좋아하는 음료 · MBTI · 혈액형<br>
+    최근 관심사 · 커피 vs 차 · 단 것 vs 짠 것
+  </div>
+  <div style="margin-bottom:8px">
+    <button class="btn btn-primary btn-lg" onclick="addParticipant()" style="margin-top:0">➕ 참가자 추가</button>
+  </div>
+
+  <div class="section-label">
+    참가자 목록 <span class="count-badge" id="countBadge">0명</span>
+  </div>
+  <div class="participant-list" id="participantList">
+    <span style="color:var(--sub);font-size:13px">참가자를 추가해주세요</span>
+  </div>
+
+  <button class="btn btn-outline btn-lg" onclick="loadSample()">📋 샘플 데이터 불러오기</button>
+  <button class="btn btn-danger btn-lg" style="margin-top:8px" onclick="clearAllConfirm()">🗑️ 전체 초기화</button>
+</div>
+
+<!-- ══ TAB 2: 팀 현황 ══ -->
+<div id="tab-teams" class="page">
+  <h2 class="page-title">🏷️ 팀 현황</h2>
+  <div class="info-box" id="teamSummaryInfo">참가자를 추가하면 팀 현황이 표시됩니다.</div>
+  <div id="teamGroups"></div>
+  <div class="section-label" style="margin-top:24px">매칭 시작</div>
+  <button class="btn btn-green btn-lg" onclick="doMatch()">✨ 마니또 매칭 시작!</button>
+</div>
+
+<!-- ══ TAB 3: 매칭 결과 ══ -->
+<div id="tab-result" class="page">
+  <div class="result-header">
+    <span class="emoji-big">🎉</span>
+    <h2 class="page-title" style="margin:0">최종 매칭 결과</h2>
+  </div>
+  <div id="noMatchYet" class="info-box">
+    아직 매칭이 진행되지 않았습니다.<br>참가자 탭에서 추가 후 매칭을 시작해주세요!
+  </div>
+  <div id="resultCards"></div>
+  <div class="bottom-actions" id="resultActions" style="display:none">
+    <button class="btn btn-primary btn-lg" onclick="shareAll()">🔗 전체 결과 URL 공유</button>
+    <button class="btn btn-outline btn-lg" onclick="copyAllText()">📋 전체 결과 텍스트 복사</button>
+    <button class="btn btn-green btn-lg" onclick="downloadResultExcel()">⬇️ 매칭 결과 엑셀 다운로드</button>
+    <button class="btn btn-danger btn-lg" onclick="reshuffleConfirm()">🔀 다시 뽑기</button>
+  </div>
+</div>
+
+<!-- ══ TAB 4: 내 결과 확인 ══ -->
+<div id="tab-myresult" class="page">
+  <h2 class="page-title">🔍 내 결과 확인</h2>
+  <div class="pw-check-form">
+    <label>참가자 이름 선택</label>
+    <div class="pw-check-row">
+      <select id="myNameSelect"><option value="">선택하세요</option></select>
+    </div>
+    <label>비밀번호 입력</label>
+    <div class="pw-check-row">
+      <input type="text" id="myPwInput" placeholder="비밀번호를 입력하세요" />
+      <button class="btn btn-primary" onclick="checkMyResult()">확인</button>
+    </div>
+  </div>
+  <div id="myResultArea"></div>
+  <div class="section-label" style="margin-top:24px">개인 결과 공유</div>
+  <div class="info-box">
+    매칭 결과 탭의 <strong>결과 직접 공유</strong> 버튼으로 개인별 링크를 생성할 수 있습니다.
+  </div>
+</div>
+
+<!-- 모달 -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">⚠️ 확인</h3>
+    <p id="modalMsg"></p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" id="modalConfirmBtn">확인</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<footer>
+  생성된 지 <strong>1개월이 지난 그룹</strong>은 자동으로 삭제됩니다.<br>
+  마니또 결과를 확인하려면 <strong>잊지 말고 미리 확인</strong>해 주세요!
+</footer>
+
+<script>
+// ── 팀 컬러 팔레트 ──
+const TEAM_COLORS = [
+  '#a78bfa','#f472b6','#34d399','#fbbf24',
+  '#60a5fa','#fb923c','#a3e635','#e879f9','#22d3ee','#f43f5e'
+];
+const teamColorMap = {};
+
+function getTeamColor(teamName) {
+  if (!teamName) return '#64748b';
+  if (!teamColorMap[teamName]) {
+    const idx = Object.keys(teamColorMap).length;
+    teamColorMap[teamName] = TEAM_COLORS[idx % TEAM_COLORS.length];
+  }
+  return teamColorMap[teamName];
+}
+
+// ── 상태 ──
+let participants = []; // {id, nick, team}
+let matches = [];      // {giver, receiver, pw}
+
+const COLORS  = ['보라','파란','초록','빨강','주황','푸른','검은','하늘'];
+const ANIMALS = ['개구리','산양','수달','돌고래','거북','고래','호랑이','바다사자','북극곰','삵','저어새'];
+const ADJS    = ['회색','노랑','하늘','금','아무르','검은'];
+
+function randPw() {
+  const c   = COLORS[~~(Math.random() * COLORS.length)];
+  const a   = ANIMALS[~~(Math.random() * ANIMALS.length)];
+  const adj = Math.random() > .5 ? ADJS[~~(Math.random() * ADJS.length)] : '';
+  return c + adj + a;
+}
+
+// ── 참가자 추가 ──
+function addParticipant() {
+  const id    = document.getElementById('nameInput').value.trim();
+  const nick  = document.getElementById('nickInput').value.trim();
+  const team  = document.getElementById('teamInput').value.trim();
+  const taste = document.getElementById('tasteInput').value.trim();
+  if (!id) { showToast('영어 아이디를 입력해주세요!'); return; }
+  if (participants.find(p => p.id === id)) { showToast('이미 있는 참가자입니다!'); return; }
+  participants.push({ id, nick: nick || id, team: team || '', taste: taste || '' });
+  ['nameInput','nickInput','teamInput','tasteInput'].forEach(i => document.getElementById(i).value = '');
+  document.getElementById('tasteCount').textContent = '0';
+  document.getElementById('tasteCount').style.color = 'var(--sub)';
+  document.getElementById('nameInput').focus();
+  matches = [];
+  renderAll();
+}
+
+function removeParticipant(id) {
+  participants = participants.filter(p => p.id !== id);
+  matches = [];
+  renderAll();
+}
+
+// ── 전체 렌더 ──
+function renderAll() {
+  renderParticipants();
+  renderTeams();
+  updateMyNameSelect();
+  if (!matches.length) {
+    document.getElementById('resultCards').innerHTML = '';
+    document.getElementById('resultActions').style.display = 'none';
+    document.getElementById('noMatchYet').style.display = '';
+  }
+}
+
+function renderParticipants() {
+  const list = document.getElementById('participantList');
+  document.getElementById('countBadge').textContent = participants.length + '명';
+  if (!participants.length) {
+    list.innerHTML = '<span style="color:var(--sub);font-size:13px">참가자를 추가해주세요</span>';
+    return;
+  }
+  list.innerHTML = participants.map(p => {
+    const color = getTeamColor(p.team);
+    const teamLabel = p.team
+      ? `<span style="font-size:11px;color:${color};margin-right:1px">[${p.team}]</span>` : '';
+    const tasteLabel = p.taste
+      ? `<span style="font-size:11px;color:var(--sub)"> · ${p.taste}</span>` : '';
+    return `<div class="p-tag" style="border-color:${p.team ? color + '55' : 'var(--border)'}">
+      ${p.team ? `<span class="team-dot" style="background:${color}"></span>` : ''}
+      ${teamLabel}${p.id}${p.nick !== p.id ? `(${p.nick})` : ''}${tasteLabel}
+      <button class="remove-btn" onclick="removeParticipant('${p.id}')">×</button>
+    </div>`;
+  }).join('');
+}
+
+// ── 팀 현황 렌더 ──
+function renderTeams() {
+  const grouped = {}, noTeam = [];
+  participants.forEach(p => {
+    if (p.team) { (grouped[p.team] = grouped[p.team] || []).push(p); }
+    else noTeam.push(p);
+  });
+
+  const teamNames = Object.keys(grouped);
+  const infoEl   = document.getElementById('teamSummaryInfo');
+  const groupsEl = document.getElementById('teamGroups');
+
+  if (!participants.length) {
+    infoEl.innerHTML = '참가자를 추가하면 팀 현황이 표시됩니다.';
+    infoEl.style.display = ''; groupsEl.innerHTML = ''; return;
+  }
+
+  if (teamNames.length === 0) {
+    infoEl.innerHTML = `팀 미지정: 전원(${participants.length}명) 랜덤 매칭됩니다.`;
+  } else {
+    const pairs = teamNames.reduce((acc, t) => { const n = grouped[t].length; return acc + n*(n-1); }, 0);
+    infoEl.innerHTML = `<strong>${teamNames.length}개 팀</strong> · 같은 팀끼리 자동 제외 · 제외 쌍: <strong>${pairs}개</strong>`;
+  }
+  infoEl.style.display = '';
+
+  let html = '';
+  teamNames.forEach(team => {
+    const color = getTeamColor(team);
+    html += `<div class="team-group" style="border-left-color:${color}">
+      <div class="team-group-header">
+        <span class="team-group-dot" style="background:${color}"></span>
+        <span class="team-group-name">${team}</span>
+        <span class="team-group-count">${grouped[team].length}명</span>
+      </div>
+      <div class="team-group-members">
+        ${grouped[team].map(m => `<span class="team-member-chip">${m.nick}</span>`).join('')}
+      </div>
+    </div>`;
+  });
+  if (noTeam.length) {
+    html += `<div class="team-group" style="border-left-color:#64748b">
+      <div class="team-group-header">
+        <span class="team-group-dot" style="background:#64748b"></span>
+        <span class="team-group-name" style="color:var(--sub)">팀 미지정</span>
+        <span class="team-group-count">${noTeam.length}명</span>
+      </div>
+      <div class="team-group-members">
+        ${noTeam.map(m => `<span class="team-member-chip">${m.nick}</span>`).join('')}
+      </div>
+    </div>`;
+  }
+  groupsEl.innerHTML = html;
+}
+
+// ── 매칭 알고리즘 ──
+function doMatch() {
+  if (participants.length < 2) { showToast('참가자가 2명 이상 필요합니다!'); return; }
+
+  // 가능 여부 사전 검사: 한 팀이 전체의 절반 초과면 수학적으로 불가능
+  const teamGroups = {};
+  participants.forEach(p => {
+    if (p.team) (teamGroups[p.team] = teamGroups[p.team] || []).push(p.id);
+  });
+  const maxTeamSize = Math.max(0, ...Object.values(teamGroups).map(m => m.length));
+  const n = participants.length;
+  if (maxTeamSize > Math.floor(n / 2)) {
+    const bigTeam = Object.entries(teamGroups).find(([,m]) => m.length === maxTeamSize)[0];
+    showToast(`⚠️ "${bigTeam}" 팀(${maxTeamSize}명)이 너무 많아 매칭 불가! 전체(${n}명)의 절반 이하여야 합니다.`);
+    switchTab('teams'); return;
+  }
+
+  // 이분 매칭: 각 참가자에게 같은 팀이 아닌 수신자를 하나씩 배정
+  const result = bipartiteMatch(participants, teamGroups);
+  if (!result) {
+    showToast('⚠️ 팀 구성으로 인해 매칭이 불가능합니다! 팀 현황을 확인해주세요.');
+    switchTab('teams'); return;
+  }
+
+  matches = result;
+  renderResult();
+  switchTab('result');
+  showToast('🎉 매칭 완료!');
+}
+
+/**
+ * 완전한 이분 매칭 알고리즘
+ * - 모든 참가자가 정확히 1명에게 주고 1명에게 받는 순열(derangement) 생성
+ * - 같은 팀끼리는 절대 매칭되지 않음
+ * - 랜덤 셔플 후 욕심쟁이 배정 + 백트래킹으로 보장
+ */
+function bipartiteMatch(parts, teamGroups) {
+  const n = parts.length;
+
+  // 팀별 id Set
+  const teamOf = {}; // id → teamName
+  parts.forEach(p => { if (p.team) teamOf[p.id] = p.team; });
+
+  // canMatch(giver, receiver): 다른 팀 또는 팀 없음
+  function canMatch(g, r) {
+    if (g === r) return false;
+    if (teamOf[g] && teamOf[r] && teamOf[g] === teamOf[r]) return false;
+    return true;
+  }
+
+  // 최대 50번 시도 (각 시도는 완전한 백트래킹)
+  for (let attempt = 0; attempt < 50; attempt++) {
+    // 수신자 후보 풀을 섞음
+    const receivers = shuffle([...parts]);
+    const assignment = new Array(n).fill(-1); // giver index → receiver index
+    const usedReceiver = new Array(n).fill(false);
+
+    function backtrack(giverIdx) {
+      if (giverIdx === n) return true;
+      const giver = parts[giverIdx];
+      // 수신자 순서도 매 시도마다 랜덤
+      const order = shuffle([...Array(n).keys()]);
+      for (const ri of order) {
+        if (usedReceiver[ri]) continue;
+        const receiver = receivers[ri];
+        if (!canMatch(giver.id, receiver.id)) continue;
+        assignment[giverIdx] = ri;
+        usedReceiver[ri] = true;
+        if (backtrack(giverIdx + 1)) return true;
+        assignment[giverIdx] = -1;
+        usedReceiver[ri] = false;
+      }
+      return false;
+    }
+
+    if (backtrack(0)) {
+      return parts.map((giver, i) => ({
+        giver,
+        receiver: receivers[assignment[i]],
+        pw: randPw()
+      }));
+    }
+  }
+  return null;
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = ~~(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ── 결과 렌더 ──
+function renderResult() {
+  document.getElementById('noMatchYet').style.display = 'none';
+  document.getElementById('resultCards').innerHTML = matches.map((m, i) => {
+    const color = getTeamColor(m.giver.team);
+    const teamBadge = m.giver.team
+      ? `<span class="card-team-badge" style="background:${color}22;color:${color};border:1px solid ${color}55">
+           <span style="width:7px;height:7px;border-radius:50%;background:${color};display:inline-block"></span>
+           ${m.giver.team}
+         </span><br>`
+      : '';
+    const tasteBox = m.receiver.taste
+      ? `<div style="margin:6px 0 14px;padding:10px 13px;background:rgba(245,166,35,.08);border:1.5px solid rgba(245,166,35,.22);border-radius:12px;font-size:12px">
+           <span style="color:var(--yellow);font-weight:700">🎁 마니또 취향 </span>
+           <span style="color:var(--text)">${m.receiver.taste}</span>
+         </div>`
+      : '';
+    return `<div class="card" style="animation-delay:${i * .06}s">
+      <div class="card-name">${m.giver.id}(${m.giver.nick})</div>
+      ${teamBadge}
+      ${tasteBox}
+      <div class="card-pw">비밀번호: <span>${m.pw}</span></div>
+      <div class="card-actions">
+        <button class="btn btn-primary" style="flex:1" onclick="shareKakao(${i})">💬 공유하기</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  const actions = document.getElementById('resultActions');
+  actions.style.display = 'flex';
+  actions.style.flexDirection = 'column';
+  updateMyNameSelect();
+}
+
+// ── 공유 기능 ──
+function makeIndividualUrl(m) {
+  const data = btoa(encodeURIComponent(JSON.stringify({
+    giver: m.giver.id,
+    giverNick: m.giver.nick,
+    pw: m.pw,
+    enc: btoa(m.receiver.nick.split('').map((c,i2) =>
+      String.fromCharCode(c.charCodeAt(0) ^ m.pw.charCodeAt(i2 % m.pw.length))
+    ).join(''))
+  })));
+  return location.href.split('?')[0] + '?result=' + data;
+}
+
+function makeShareText(m) {
+  const url = makeIndividualUrl(m);
+  return `"${m.giver.nick}"님의 비밀번호는 "${m.pw}"입니다. 🎁\n결과를 확인하고 활동을 시작해볼까요?\n결과 확인 링크: ${url}`;
+}
+
+function shareKakao(i) {
+  const text = makeShareText(matches[i]);
+  copyToClipboard(text, '카톡 메시지 복사 완료!');
+}
+
+function copyIndividual(i) {
+  const text = makeShareText(matches[i]);
+  copyToClipboard(text, '복사 완료!');
+}
+
+function copyToClipboard(text, successMsg) {
+  // 방법 1: 최신 Clipboard API
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text)
+      .then(() => showToast(successMsg))
+      .catch(() => execCopy(text, successMsg));
+    return;
+  }
+  // 방법 2: execCommand fallback
+  execCopy(text, successMsg);
+}
+
+function execCopy(text, successMsg) {
+  const el = document.createElement('textarea');
+  el.value = text;
+  el.setAttribute('readonly', '');
+  el.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0';
+  document.body.appendChild(el);
+  el.focus();
+  el.select();
+  el.setSelectionRange(0, 99999); // 모바일 대응
+  try {
+    const ok = document.execCommand('copy');
+    showToast(ok ? successMsg : '복사 실패 — 직접 선택해주세요');
+  } catch(e) {
+    showToast('복사 실패 — 직접 선택해주세요');
+  }
+  document.body.removeChild(el);
+}
+
+function fallbackCopy(text) {
+  execCopy(text, '복사 완료!');
+}
+
+function shareAll() {
+  const data = btoa(encodeURIComponent(JSON.stringify(
+    matches.map(m => ({ g:m.giver.id, gn:m.giver.nick, r:m.receiver.id, rn:m.receiver.nick, pw:m.pw }))
+  )));
+  navigator.clipboard.writeText(location.href.split('?')[0] + '?all=' + data)
+    .then(() => showToast('전체 결과 URL 복사 완료!'));
+}
+
+function copyAllText() {
+  if (!matches.length) { showToast('먼저 매칭을 진행해주세요!'); return; }
+  const text = matches.map(m =>
+    `${m.giver.id}(${m.giver.nick})${m.giver.team ? ' ['+m.giver.team+']' : ''} → 비밀번호: ${m.pw}`
+  ).join('\n');
+  navigator.clipboard.writeText(`🎉 마니또 매칭 결과 🎉\n\n${text}\n\n비밀번호로 마니또 결과를 확인하세요!`)
+    .then(() => showToast('전체 결과 텍스트 복사 완료!'));
+}
+
+function reshuffleConfirm() {
+  showModal('🔀 다시 뽑기', '정말 다시 뽑을까요? 기존 결과가 사라집니다.', () => {
+    closeModal(); doMatch();
+  });
+}
+
+// ── 내 결과 확인 ──
+function updateMyNameSelect() {
+  const sel = document.getElementById('myNameSelect');
+  sel.innerHTML = '<option value="">선택하세요</option>' +
+    participants.map(p => `<option value="${p.id}">${p.id}(${p.nick})</option>`).join('');
+}
+
+function checkMyResult() {
+  const id   = document.getElementById('myNameSelect').value;
+  const pw   = document.getElementById('myPwInput').value.trim();
+  const area = document.getElementById('myResultArea');
+  if (!id || !pw) { showToast('이름과 비밀번호를 입력해주세요!'); return; }
+  if (!matches.length) { area.innerHTML = '<div class="warn-box">아직 매칭이 진행되지 않았습니다!</div>'; return; }
+  const match = matches.find(m => m.giver.id === id);
+  if (!match) { area.innerHTML = '<div class="warn-box">참가자 정보를 찾을 수 없습니다.</div>'; return; }
+  if (match.pw !== pw) { area.innerHTML = '<div class="warn-box">❌ 비밀번호가 틀렸습니다!</div>'; return; }
+
+  const color   = getTeamColor(match.giver.team);
+  const teamInfo = match.giver.team
+    ? `<div style="font-size:12px;color:${color};margin-bottom:8px;font-weight:700">[${match.giver.team}]</div>` : '';
+
+  const tasteSection = match.receiver.taste
+    ? `<div style="margin-top:16px;padding:13px 15px;background:rgba(245,166,35,.08);border:1.5px solid rgba(245,166,35,.22);border-radius:14px;text-align:left">
+         <div style="font-size:12px;color:var(--yellow);font-weight:700;margin-bottom:5px">🎁 마니또 취향</div>
+         <div style="font-size:14px;color:var(--text);line-height:1.65;font-weight:500">${match.receiver.taste}</div>
+       </div>`
+    : '';
+
+  area.innerHTML = `
+    <div class="reveal-card">
+      ${teamInfo}
+      <div class="my-name">${match.giver.nick}</div>
+      <div class="arrow-reveal">👇</div>
+      <div style="font-size:13px;color:var(--sub);margin-bottom:4px">나의 마니또는...</div>
+      <div class="target-name">🎁 ${match.receiver.nick} 🎁</div>
+      <div class="hint">${match.receiver.id}</div>
+      ${tasteSection}
+    </div>
+    <button class="btn btn-primary btn-lg" onclick="copyMyResult('${match.giver.nick}','${match.receiver.nick}','${match.receiver.taste || ''}')">📋 내 결과 복사</button>
+  `;
+}
+
+function copyMyResult(gn, rn, taste) {
+  const tasteText = taste ? `\n🎁 마니또 취향: ${taste}` : '';
+  navigator.clipboard.writeText(`[마니또 결과]\n${gn}님의 마니또: ${rn}${tasteText}\n소중한 선물 부탁드려요 🎁`)
+    .then(() => showToast('복사 완료!'));
+}
+
+// ── 엑셀 업로드 ──
+let pendingImport = []; // 미확정 import 데이터
+
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById('uploadSection').classList.add('drag-over');
+}
+function handleDragLeave(e) {
+  document.getElementById('uploadSection').classList.remove('drag-over');
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadSection').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processExcelFile(file);
+}
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) processExcelFile(file);
+  e.target.value = ''; // 같은 파일 재업로드 허용
+}
+
+function processExcelFile(file) {
+  const errEl = document.getElementById('uploadError');
+  const previewEl = document.getElementById('uploadPreview');
+  errEl.classList.remove('show');
+  previewEl.classList.remove('show');
+
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['xlsx','xls','csv'].includes(ext)) {
+    showUploadError('xlsx, xls, csv 파일만 지원합니다.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+      if (rows.length < 2) { showUploadError('데이터가 없습니다. 1행(헤더) + 2행 이상의 데이터가 필요합니다.'); return; }
+
+      // 헤더 행 건너뛰기 (1번째 셀이 문자열이면 헤더로 판단)
+      let startRow = 0;
+      const firstCell = String(rows[0][0] || '').trim();
+      if (isNaN(firstCell) && firstCell && !/^[a-z0-9._\-]+$/i.test(firstCell.split('(')[0])) {
+        startRow = 1;
+      }
+
+      const parsed = [];
+      for (let i = startRow; i < rows.length; i++) {
+        const row = rows[i];
+        const id    = String(row[0] || '').trim();
+        const nick  = String(row[1] || '').trim();
+        const team  = String(row[2] || '').trim();
+        const taste = String(row[3] || '').trim();
+        if (!id) continue;
+        parsed.push({ id, nick: nick || id, team, taste });
+      }
+
+      if (!parsed.length) { showUploadError('유효한 참가자 데이터를 찾을 수 없습니다.'); return; }
+
+      // 중복 체크
+      const newOnes = parsed.filter(p => !participants.find(ex => ex.id === p.id));
+      const dupCount = parsed.length - newOnes.length;
+
+      pendingImport = parsed;
+      showUploadPreview(parsed, newOnes.length, dupCount, file.name);
+
+    } catch(err) {
+      showUploadError('파일을 읽는 중 오류가 발생했습니다: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function showUploadError(msg) {
+  const el = document.getElementById('uploadError');
+  el.textContent = '❌ ' + msg;
+  el.classList.add('show');
+}
+
+function showUploadPreview(parsed, newCount, dupCount, fileName) {
+  const previewEl = document.getElementById('uploadPreview');
+  document.getElementById('previewTitle').textContent =
+    `${fileName} — ${parsed.length}명 인식 (신규 ${newCount}명${dupCount ? ', 중복 ' + dupCount + '명 제외됨' : ''})`;
+
+  const MAX_SHOW = 8;
+  const tbody = document.getElementById('previewBody');
+  tbody.innerHTML = parsed.slice(0, MAX_SHOW).map(p =>
+    `<tr>
+      <td>${p.id}</td>
+      <td>${p.nick}</td>
+      <td>${p.team || '<span style="color:var(--sub)">없음</span>'}</td>
+      <td>${p.taste || '<span style="color:var(--sub)">없음</span>'}</td>
+    </tr>`
+  ).join('');
+
+  const moreEl = document.getElementById('previewMore');
+  moreEl.textContent = parsed.length > MAX_SHOW ? `외 ${parsed.length - MAX_SHOW}명 더 있음` : '';
+
+  const btn = document.getElementById('confirmImportBtn');
+  btn.textContent = newCount > 0 ? `✅ ${newCount}명 추가하기` : '⚠️ 추가할 신규 인원 없음';
+  btn.disabled = newCount === 0;
+
+  previewEl.classList.add('show');
+}
+
+function confirmImport() {
+  const newOnes = pendingImport.filter(p => !participants.find(ex => ex.id === p.id));
+  newOnes.forEach(p => participants.push(p));
+  pendingImport = [];
+  document.getElementById('uploadPreview').classList.remove('show');
+  document.getElementById('uploadError').classList.remove('show');
+  matches = [];
+  renderAll();
+  showToast(`🎉 ${newOnes.length}명이 추가되었습니다!`);
+}
+
+function cancelImport() {
+  pendingImport = [];
+  document.getElementById('uploadPreview').classList.remove('show');
+  document.getElementById('uploadError').classList.remove('show');
+}
+
+function downloadResultExcel() {
+  if (!matches.length) { showToast('먼저 매칭을 진행해주세요!'); return; }
+
+  const rows = [
+    ['닉네임', '영어아이디', '이메일아이디', '팀명', '비밀번호', '내취향', '마니또취향']
+  ];
+  matches.forEach(m => {
+    rows.push([
+      m.giver.nick,
+      m.giver.id,
+      m.giver.id,
+      m.giver.team || '',
+      m.pw,
+      m.giver.taste || '',
+      m.receiver.taste || ''
+    ]);
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:14},{wch:20},{wch:20},{wch:14},{wch:20},{wch:30},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, ws, '마니또매칭결과');
+  XLSX.writeFile(wb, '마니또_매칭결과.xlsx');
+  showToast('엑셀 파일 다운로드 완료!');
+}
+
+
+function downloadTemplate() {
+  const wb = XLSX.utils.book_new();
+  const data = [
+    ['영어아이디', '닉네임', '팀명', '취향'],
+    ['jayce.wh', '제이스', 'A팀', '아메리카노, 초콜릿과자, INFP, A형, 단 것, 최근 관심사: 보드게임'],
+    ['emma.m',   '엠마',   'A팀', '녹차라떼, 젤리, ENFJ, O형, 커피보다 차, 짠 것'],
+    ['sky.jjo',  '스카이', 'A팀', '아이스티, 견과류, ISTP, B형, 단 것 vs 짠 것: 짠 것'],
+    ['ivy.rom',  '아이비', 'B팀', '카페라떼, 떡볶이, ENFP, AB형, 최근 관심사: 독서'],
+    ['lucas.link','루카스','B팀', '블랙커피, 과자, INTJ, A형, 단 것'],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:20},{wch:14},{wch:14},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, ws, '참가자목록');
+  XLSX.writeFile(wb, '마니또_참가자_양식.xlsx');
+  showToast('양식 파일을 다운로드했습니다!');
+}
+
+// ── 샘플 데이터 ──
+function loadSample() {
+  const sample = [
+    {id:'jayce.wh',   nick:'제이스', team:'A팀', taste:'아메리카노, 레고'},
+    {id:'emma.m',     nick:'엠마',   team:'A팀', taste:'꽃, 디퓨저, 파스텔'},
+    {id:'sky.jjo',    nick:'스카이', team:'A팀', taste:'운동용품, 단백질바'},
+    {id:'ivy.rom',    nick:'아이비', team:'B팀', taste:'책, 북마크'},
+    {id:'lucas.link', nick:'루카스', team:'B팀', taste:''},
+    {id:'ash.moore',  nick:'애쉬',   team:'B팀', taste:'커피, 초콜릿'},
+    {id:'ava.gwak',   nick:'에이바', team:'C팀', taste:'향초, 미니 화분'},
+    {id:'dori.zi',    nick:'도리',   team:'C팀', taste:''},
+    {id:'hazel.jung', nick:'헤이즐', team:'C팀', taste:'베이킹 용품, 쿠키'},
+  ];
+  sample.forEach(s => { if (!participants.find(p => p.id === s.id)) participants.push(s); });
+  matches = [];
+  renderAll();
+  showToast('샘플 데이터를 불러왔습니다!');
+}
+
+function clearAllConfirm() {
+  showModal('🗑️ 전체 초기화', '참가자와 모든 데이터를 초기화할까요?', () => {
+    participants = []; matches = [];
+    Object.keys(teamColorMap).forEach(k => delete teamColorMap[k]);
+    renderAll(); closeModal();
+  });
+}
+
+// ── URL 파라미터 처리 (공유 링크 열었을 때) ──
+(function() {
+  const params = new URLSearchParams(location.search);
+  if (params.has('result')) {
+    try {
+      const data = JSON.parse(decodeURIComponent(atob(params.get('result'))));
+      document.querySelector('.tabs').style.display = 'none';
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      const div = document.createElement('div');
+      div.style.cssText = 'position:relative;z-index:1;padding:40px 20px;max-width:480px;margin:0 auto;text-align:center';
+      div.innerHTML = `
+        <div style="font-family:Gaegu,cursive;font-size:28px;background:linear-gradient(135deg,#a78bfa,#f472b6);
+          -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:24px">🎉 마니또 결과</div>
+        <div class="reveal-card">
+          <div class="my-name">${data.giverNick}</div>
+          <div class="arrow-reveal">💌</div>
+          <div style="font-size:13px;color:var(--sub);margin-bottom:4px">당신의 마니또는...</div>
+          <div class="target-name">🎁 ${data.receiverNick} 🎁</div>
+        </div>`;
+      document.body.appendChild(div);
+    } catch(e) {}
+  }
+})();
+
+// ── UI 유틸 ──
+function switchTab(name) {
+  const names = ['setup','teams','result','myresult'];
+  document.querySelectorAll('.tab-btn').forEach((b, i) =>
+    b.classList.toggle('active', names[i] === name));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+let modalCb = null;
+function showModal(title, msg, cb) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalMsg').textContent = msg;
+  modalCb = cb;
+  document.getElementById('modalOverlay').classList.add('show');
+  document.getElementById('modalConfirmBtn').onclick = () => { if (modalCb) modalCb(); };
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+  modalCb = null;
+}
+
+// ── 엔터키 연결 ──
+document.getElementById('nameInput').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('nickInput').focus(); });
+document.getElementById('nickInput').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('teamInput').focus(); });
+document.getElementById('teamInput').addEventListener('keydown',  e => { if(e.key==='Enter') document.getElementById('tasteInput').focus(); });
+document.getElementById('tasteInput').addEventListener('keydown', e => { if(e.key==='Enter') addParticipant(); });
+document.getElementById('myPwInput').addEventListener('keydown',  e => { if(e.key==='Enter') checkMyResult(); });
+
+// ── URL 파라미터로 개인 결과 직접 확인 ──
+(function() {
+  const params = new URLSearchParams(location.search);
+  const encoded = params.get('result');
+  if (!encoded) return;
+
+  let data;
+  try { data = JSON.parse(decodeURIComponent(atob(encoded))); }
+  catch(e) { return; }
+
+  // 탭 숨기고 전용 화면 표시 (라이트 테마 유지)
+  document.querySelector('.tabs').style.display = 'none';
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+
+  const wrap = document.createElement('div');
+  wrap.id = 'directResult';
+  wrap.style.cssText = 'max-width:420px;margin:0 auto;padding:40px 20px 80px;position:relative;z-index:2';
+  wrap.innerHTML = `
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="font-size:52px;margin-bottom:10px">🎁</div>
+      <h2 style="font-size:24px;font-weight:800;color:var(--text);margin-bottom:6px;letter-spacing:-0.5px">마니또 결과 확인</h2>
+      <p style="font-size:14px;color:var(--sub)">카톡으로 받은 비밀번호를 입력해주세요</p>
+    </div>
+    <div style="background:var(--card);border:1.5px solid var(--border);border-radius:24px;padding:28px 24px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:14px">
+      <div style="background:var(--bg2);border-radius:14px;padding:14px 16px;text-align:center">
+        <div style="font-size:11px;font-weight:800;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">참가자</div>
+        <div style="font-size:20px;font-weight:800;color:var(--text)">${data.giverNick}</div>
+        <div style="font-size:12px;color:var(--sub2);margin-top:2px">${data.giver}</div>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:800;color:var(--sub);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:8px">비밀번호 입력</label>
+        <input type="text" id="directPwInput" placeholder="받은 비밀번호를 입력하세요"
+          style="width:100%;padding:13px 15px;background:var(--bg2);border:1.5px solid var(--border);border-radius:14px;color:var(--text);font-family:'Nunito','Nanum Gothic',sans-serif;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s"
+          onfocus="this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 0 3px rgba(232,119,154,.12)'"
+          onblur="this.style.borderColor='var(--border)';this.style.boxShadow='none'" />
+      </div>
+      <button id="directPwBtn" class="btn btn-primary btn-lg" style="margin-top:4px">🎁 내 마니또 확인하기</button>
+      <div id="directResultArea"></div>
+    </div>
+    <div style="text-align:center;margin-top:20px">
+      <a href="${location.href.split('?')[0]}" style="font-size:13px;color:var(--sub2);text-decoration:none">← 마니또 뽑기 홈으로</a>
+    </div>
+  `;
+  document.body.appendChild(wrap);
+
+  function doCheck() {
+    const pwInput = document.getElementById('directPwInput').value.trim();
+    const area    = document.getElementById('directResultArea');
+
+    if (!pwInput) { showToast('비밀번호를 입력해주세요!'); return; }
+    if (pwInput !== data.pw) {
+      area.innerHTML = `<div class="warn-box">❌ 비밀번호가 틀렸습니다. 다시 확인해주세요!</div>`;
+      return;
+    }
+
+    // 비밀번호 일치 시 XOR 복호화
+    const receiverNick = atob(data.enc).split('').map((c, i2) =>
+      String.fromCharCode(c.charCodeAt(0) ^ data.pw.charCodeAt(i2 % data.pw.length))
+    ).join('');
+
+    area.innerHTML = `
+      <div style="padding:24px 20px;background:linear-gradient(135deg,rgba(232,119,154,.1),rgba(240,168,150,.08));border:1.5px solid rgba(232,119,154,.25);border-radius:18px;text-align:center;animation:slideUp .4s ease">
+        <div style="font-size:13px;color:var(--sub);margin-bottom:8px">${data.giverNick}님의 마니또는...</div>
+        <div style="font-size:34px;font-weight:900;color:var(--accent);letter-spacing:-1px;margin-bottom:6px">🎁 ${receiverNick} 🎁</div>
+        <div style="font-size:12px;color:var(--sub2)">소중한 선물 부탁드려요 😊</div>
+      </div>
+    `;
+    document.getElementById('directPwInput').disabled = true;
+    document.getElementById('directPwBtn').disabled = true;
+    document.getElementById('directPwBtn').style.opacity = '0.5';
+  }
+
+  document.getElementById('directPwBtn').addEventListener('click', doCheck);
+  document.getElementById('directPwInput').addEventListener('keydown', e => { if (e.key === 'Enter') doCheck(); });
+})();
+
+function updateTasteCount() {
+  const len = document.getElementById('tasteInput').value.length;
+  const el = document.getElementById('tasteCount');
+  el.textContent = len;
+  el.style.color = len >= 180 ? 'var(--red)' : len >= 140 ? 'var(--yellow)' : 'var(--sub)';
+}
+
+// ── 배경 파티클 ──
+(function() {
+  const canvas = document.getElementById('bgCanvas');
+  const ctx = canvas.getContext('2d');
+  let W, H;
+  const particles = Array.from({length: 70}, () => ({
+    x: Math.random()*1920, y: Math.random()*1080,
+    vx: (Math.random()-.5)*.3, vy: Math.random()*.4+.1,
+    size: Math.random()*3+1, alpha: Math.random()*.4+.1,
+    color: ['#a78bfa','#f472b6','#fbbf24','#34d399'][~~(Math.random()*4)]
+  }));
+  function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
+  window.addEventListener('resize', resize); resize();
+  (function draw() {
+    ctx.clearRect(0,0,W,H);
+    particles.forEach(p => {
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.y>H){p.y=-10;p.x=Math.random()*W;}
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+      ctx.save(); ctx.globalAlpha=p.alpha; ctx.fillStyle=p.color;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill(); ctx.restore();
+    });
+    requestAnimationFrame(draw);
+  })();
+})();
+</script>
+</body>
+</html>
