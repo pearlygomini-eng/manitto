@@ -791,26 +791,40 @@ function renderResult() {
 }
 
 // ── 공유 기능 ──
+function makeIndividualUrl(m) {
+  const data = btoa(encodeURIComponent(JSON.stringify({
+    giver: m.giver.id,
+    giverNick: m.giver.nick,
+    pw: m.pw,
+    enc: btoa(m.receiver.nick.split('').map((c,i2) =>
+      String.fromCharCode(c.charCodeAt(0) ^ m.pw.charCodeAt(i2 % m.pw.length))
+    ).join(''))
+  })));
+  return location.href.split('?')[0] + '?result=' + data;
+}
+
 function shareKakao(i) {
   const m = matches[i];
-  const text = `[마니또 결과]\n안녕하세요, ${m.giver.nick}님!\n비밀번호: ${m.pw}\n\n비밀번호로 마니또를 확인하세요 🎉`;
-  navigator.clipboard.writeText(text).then(() => showToast('카톡 메시지 복사 완료!'));
+  const url = makeIndividualUrl(m);
+  const text = `🎉 마니또 결과 도착!\n\n안녕하세요, ${m.giver.nick}님!\n아래 링크에서 비밀번호를 입력하면 나의 마니또를 확인할 수 있어요 🎁\n\n🔑 비밀번호: ${m.pw}\n🔗 확인 링크: ${url}`;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => showToast('카톡 메시지 복사 완료!'))
+      .catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
 }
 
 function copyIndividual(i) {
   const m = matches[i];
-  const data = btoa(encodeURIComponent(JSON.stringify({
-    giver: m.giver.id, giverNick: m.giver.nick,
-    pw: m.pw, receiverNick: m.receiver.nick
-  })));
-  const url = location.href.split('?')[0] + '?result=' + data;
-
+  const url = makeIndividualUrl(m);
+  const text = `🎉 마니또 결과 도착!\n\n안녕하세요, ${m.giver.nick}님!\n아래 링크에서 비밀번호를 입력하면 나의 마니또를 확인할 수 있어요 🎁\n\n🔑 비밀번호: ${m.pw}\n🔗 확인 링크: ${url}`;
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(url)
+    navigator.clipboard.writeText(text)
       .then(() => showToast('링크 복사 완료!'))
-      .catch(() => fallbackCopy(url));
+      .catch(() => fallbackCopy(text));
   } else {
-    fallbackCopy(url);
+    fallbackCopy(text);
   }
 }
 
@@ -822,9 +836,9 @@ function fallbackCopy(text) {
   el.focus(); el.select();
   try {
     document.execCommand('copy');
-    showToast('링크 복사 완료!');
+    showToast('복사 완료!');
   } catch(e) {
-    showToast('복사 실패 — 링크를 직접 선택해주세요');
+    showToast('복사 실패 — 직접 선택해주세요');
   }
   document.body.removeChild(el);
 }
@@ -1191,7 +1205,7 @@ document.getElementById('myPwInput').addEventListener('keydown',  e => { if(e.ke
       <div style="display:flex;gap:8px;margin-bottom:6px">
         <input type="text" id="directPwInput" placeholder="비밀번호를 입력하세요"
           style="flex:1;padding:13px 15px;background:var(--bg2);border:1.5px solid var(--border);border-radius:14px;color:var(--text);font-family:inherit;font-size:14px;outline:none" />
-        <button class="btn btn-primary" onclick="checkDirectPw('${data.pw}','${data.receiverNick}')" style="padding:13px 18px;border-radius:14px;white-space:nowrap">확인</button>
+        <button class="btn btn-primary" id="directPwBtn" style="padding:13px 18px;border-radius:14px;white-space:nowrap">확인</button>
       </div>
       <div id="directResultArea"></div>
     </div>
@@ -1201,30 +1215,35 @@ document.getElementById('myPwInput').addEventListener('keydown',  e => { if(e.ke
   `;
   document.body.appendChild(wrap);
 
-  document.getElementById('directPwInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') checkDirectPw(data.pw, data.receiverNick);
-  });
-})();
+  function doCheck() {
+    const input = document.getElementById('directPwInput').value.trim();
+    const area  = document.getElementById('directResultArea');
+    if (!input) { showToast('비밀번호를 입력해주세요!'); return; }
+    if (input !== data.pw) {
+      area.innerHTML = `<div class="warn-box" style="margin-top:12px">❌ 비밀번호가 틀렸습니다!</div>`;
+      return;
+    }
+    // 비밀번호 일치 시에만 XOR 복호화
+    const receiverNick = atob(data.enc).split('').map((c, i2) =>
+      String.fromCharCode(c.charCodeAt(0) ^ data.pw.charCodeAt(i2 % data.pw.length))
+    ).join('');
 
-function checkDirectPw(correctPw, receiverNick) {
-  const input = document.getElementById('directPwInput').value.trim();
-  const area  = document.getElementById('directResultArea');
-  if (!input) { showToast('비밀번호를 입력해주세요!'); return; }
-
-  if (input !== correctPw) {
-    area.innerHTML = `<div class="warn-box" style="margin-top:12px">❌ 비밀번호가 틀렸습니다!</div>`;
-    return;
+    area.innerHTML = `
+      <div style="margin-top:16px;padding:24px 20px;background:linear-gradient(135deg,rgba(232,119,154,.1),rgba(240,168,150,.08));border:1.5px solid rgba(232,119,154,.25);border-radius:18px;text-align:center;animation:slideUp .4s ease">
+        <div style="font-size:13px;color:var(--sub);margin-bottom:8px">나의 마니또는...</div>
+        <div style="font-size:34px;font-weight:900;color:var(--accent);letter-spacing:-1px;margin-bottom:4px">🎁 ${receiverNick} 🎁</div>
+        <div style="font-size:12px;color:var(--sub2);margin-top:8px">소중한 선물 부탁드려요 😊</div>
+      </div>
+    `;
+    document.getElementById('directPwInput').disabled = true;
+    document.getElementById('directPwBtn').disabled = true;
   }
 
-  area.innerHTML = `
-    <div style="margin-top:16px;padding:24px 20px;background:linear-gradient(135deg,rgba(232,119,154,.1),rgba(240,168,150,.08));border:1.5px solid rgba(232,119,154,.25);border-radius:18px;text-align:center;animation:slideUp .4s ease">
-      <div style="font-size:13px;color:var(--sub);margin-bottom:8px">나의 마니또는...</div>
-      <div style="font-size:34px;font-weight:900;color:var(--accent);letter-spacing:-1px;margin-bottom:4px">🎁 ${receiverNick} 🎁</div>
-      <div style="font-size:12px;color:var(--sub2);margin-top:8px">소중한 선물 부탁드려요 😊</div>
-    </div>
-  `;
-  document.getElementById('directPwInput').disabled = true;
-}
+  document.getElementById('directPwBtn').addEventListener('click', doCheck);
+  document.getElementById('directPwInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doCheck();
+  });
+})();
 
 function updateTasteCount() {
   const len = document.getElementById('tasteInput').value.length;
