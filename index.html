@@ -803,25 +803,11 @@ function renderResult() {
 
 // ── 공유 기능 ──
 function makeIndividualUrl(m) {
-  // 마니또 닉네임을 비밀번호로 XOR 암호화 후 URL에 포함
-  // btoa는 Latin-1만 지원하므로 encodeURIComponent로 먼저 변환
-  const encoded = encodeURIComponent(m.receiver.nick);
-  const pw = m.pw;
-  // XOR 암호화: 각 문자 코드 ^ pw 문자 코드
-  const xored = encoded.split('').map((c, i) =>
-    String.fromCharCode(c.charCodeAt(0) ^ pw.charCodeAt(i % pw.length))
-  );
-  // Latin-1 범위 벗어나는 문자 안전하게 처리
-  const enc = btoa(xored.map(c => {
-    const code = c.charCodeAt(0);
-    return code > 255 ? String.fromCharCode(code % 256, Math.floor(code / 256)) : c;
-  }).join(''));
-
   const payload = {
     giverNick: m.giver.nick,
     giver: m.giver.id,
-    pw: pw,
-    enc: enc
+    pw: m.pw,
+    receiverNick: m.receiver.nick
   };
   const data = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
   return location.href.split('?')[0] + '?result=' + data;
@@ -1250,12 +1236,7 @@ document.getElementById('myPwInput').addEventListener('keydown',  e => { if(e.ke
       return;
     }
 
-    // 비밀번호 일치 시 XOR 복호화
-    const pw = data.pw;
-    const xored = atob(data.enc).split('').map((c, i2) =>
-      String.fromCharCode(c.charCodeAt(0) ^ pw.charCodeAt(i2 % pw.length))
-    ).join('');
-    const receiverNick = decodeURIComponent(xored);
+    const receiverNick = data.receiverNick;
 
     area.innerHTML = `
       <div style="padding:24px 20px;background:linear-gradient(135deg,rgba(232,119,154,.1),rgba(240,168,150,.08));border:1.5px solid rgba(232,119,154,.25);border-radius:18px;text-align:center;animation:slideUp .4s ease">
