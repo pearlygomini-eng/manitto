@@ -1120,29 +1120,7 @@ function clearAllConfirm() {
   });
 }
 
-// ── URL 파라미터 처리 (공유 링크 열었을 때) ──
-(function() {
-  const params = new URLSearchParams(location.search);
-  if (params.has('result')) {
-    try {
-      const data = JSON.parse(decodeURIComponent(atob(params.get('result'))));
-      document.querySelector('.tabs').style.display = 'none';
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      const div = document.createElement('div');
-      div.style.cssText = 'position:relative;z-index:1;padding:40px 20px;max-width:480px;margin:0 auto;text-align:center';
-      div.innerHTML = `
-        <div style="font-family:Gaegu,cursive;font-size:28px;background:linear-gradient(135deg,#a78bfa,#f472b6);
-          -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:24px">🎉 마니또 결과</div>
-        <div class="reveal-card">
-          <div class="my-name">${data.giverNick}</div>
-          <div class="arrow-reveal">💌</div>
-          <div style="font-size:13px;color:var(--sub);margin-bottom:4px">당신의 마니또는...</div>
-          <div class="target-name">🎁 ${data.receiverNick} 🎁</div>
-        </div>`;
-      document.body.appendChild(div);
-    } catch(e) {}
-  }
-})();
+
 
 // ── UI 유틸 ──
 function switchTab(name) {
