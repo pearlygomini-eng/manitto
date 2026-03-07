@@ -3,7 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>마니또 뽑기 사이트</title>
+  <title>카카오페이증권 C&R 마니또 이벤트</title>
+
+  <!-- 카톡 미리보기 카드 (OG 태그) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="🎁 카카오페이증권 C&R 마니또 이벤트" />
+  <meta property="og:description" content="링크를 눌러 비밀번호를 입력하면 나의 마니또를 확인할 수 있어요!" />
+  <meta property="og:image" content="https://em-content.zobj.net/source/apple/391/wrapped-gift_1f381.png" />
+  <meta property="og:image:width" content="400" />
+  <meta property="og:image:height" content="400" />
+  <meta name="description" content="링크를 눌러 비밀번호를 입력하면 나의 마니또를 확인할 수 있어요!" />
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
@@ -381,7 +390,7 @@
 
 <!-- ══ TAB 1: 참가자 설정 ══ -->
 <div id="tab-setup" class="page active">
-  <h2 class="page-title">🎉 마니또 뽑기</h2>
+  <h2 class="page-title">🎉 카카오페이증권 C&R 마니또 이벤트</h2>
 
   <div class="team-hint">
     <strong>팀명을 입력하면 같은 팀끼리는 마니또 매칭에서 자동으로 제외됩니다.</strong><br>
@@ -422,15 +431,15 @@
   <div class="divider">직접 입력</div>
 
   <div class="input-row">
-    <input type="text" id="nameInput" placeholder="영어 아이디 (예: jayce.wh)" />
+    <input type="text" id="nameInput" placeholder="영어 아이디 (예: sienna.on)" />
     <input type="text" id="nickInput" placeholder="닉네임" style="max-width:100px"/>
   </div>
   <div class="input-row">
     <input type="text" id="teamInput" placeholder="팀명 (선택사항)" style="max-width:130px"/>
-    <input type="text" id="tasteInput" placeholder="예: 아메리카노, INFP, A형, 단 것, 최근 관심사..." maxlength="200" oninput="updateTasteCount()" />
+    <textarea id="tasteInput" placeholder="예: 좋아하는 간식 : &#10;커피 vs 차 : &#10;최근 관심사 : " maxlength="300" oninput="updateTasteCount()" rows="4" style="resize:vertical;line-height:1.7;padding:10px 14px;font-family:inherit;font-size:14px;width:100%;border:1.5px solid var(--border);border-radius:14px;background:var(--bg2);color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s" onfocus="this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 0 3px rgba(232,119,154,.12)'" onblur="this.style.borderColor='var(--border)';this.style.boxShadow='none'"></textarea>
   </div>
   <div style="text-align:right;font-size:11px;color:var(--sub);margin-top:-4px;margin-bottom:6px">
-    <span id="tasteCount">0</span> / 200자
+    <span id="tasteCount">0</span> / 300자
   </div>
   <div style="background:rgba(245,166,35,.07);border:1.5px solid rgba(245,166,35,.2);border-radius:14px;padding:11px 14px;font-size:12px;color:var(--sub);line-height:1.9;margin-bottom:4px">
     💡 <strong style="color:var(--yellow)">취향 예시</strong><br>
@@ -514,10 +523,7 @@
 
 <div class="toast" id="toast"></div>
 
-<footer>
-  생성된 지 <strong>1개월이 지난 그룹</strong>은 자동으로 삭제됩니다.<br>
-  마니또 결과를 확인하려면 <strong>잊지 말고 미리 확인</strong>해 주세요!
-</footer>
+
 
 <script>
 // ── 팀 컬러 팔레트 ──
@@ -769,7 +775,7 @@ function renderResult() {
     const tasteBox = m.receiver.taste
       ? `<div style="margin:6px 0 14px;padding:10px 13px;background:rgba(245,166,35,.08);border:1.5px solid rgba(245,166,35,.22);border-radius:12px;font-size:12px">
            <span style="color:var(--yellow);font-weight:700">🎁 마니또 취향 </span>
-           <span style="color:var(--text)">${m.receiver.taste}</span>
+           <span style="color:var(--text);white-space:pre-line">${m.receiver.taste}</span>
          </div>`
       : '';
     return `<div class="card" style="animation-delay:${i * .06}s">
@@ -855,17 +861,29 @@ function shareAll() {
   const data = btoa(encodeURIComponent(JSON.stringify(
     matches.map(m => ({ g:m.giver.id, gn:m.giver.nick, r:m.receiver.id, rn:m.receiver.nick, pw:m.pw }))
   )));
-  navigator.clipboard.writeText(location.href.split('?')[0] + '?all=' + data)
-    .then(() => showToast('전체 결과 URL 복사 완료!'));
+  const url = location.href.split('?')[0] + '?all=' + data;
+  if (navigator.clipboard && location.protocol === 'https:') {
+    navigator.clipboard.writeText(url).then(() => showToast('전체 결과 URL 복사 완료!'));
+  } else {
+    legacyCopy(url);
+    showToast('전체 결과 URL 복사 완료!');
+  }
 }
 
 function copyAllText() {
   if (!matches.length) { showToast('먼저 매칭을 진행해주세요!'); return; }
-  const text = matches.map(m =>
-    `${m.giver.id}(${m.giver.nick})${m.giver.team ? ' ['+m.giver.team+']' : ''} → 비밀번호: ${m.pw}`
-  ).join('\n');
-  navigator.clipboard.writeText(`🎉 마니또 매칭 결과 🎉\n\n${text}\n\n비밀번호로 마니또 결과를 확인하세요!`)
-    .then(() => showToast('전체 결과 텍스트 복사 완료!'));
+  const text = matches.map(m => {
+    const giver = `${m.giver.id}(${m.giver.nick})${m.giver.team ? ' ['+m.giver.team+']' : ''}`;
+    const receiver = `${m.receiver.id}(${m.receiver.nick})${m.receiver.team ? ' ['+m.receiver.team+']' : ''}`;
+    return `${giver} → ${receiver}`;
+  }).join('\n');
+  const fullText = `🎉 마니또 매칭 결과 🎉\n\n${text}`;
+  if (navigator.clipboard && location.protocol === 'https:') {
+    navigator.clipboard.writeText(fullText).then(() => showToast('전체 결과 텍스트 복사 완료!'));
+  } else {
+    legacyCopy(fullText);
+    showToast('전체 결과 텍스트 복사 완료!');
+  }
 }
 
 function reshuffleConfirm() {
@@ -897,8 +915,8 @@ function checkMyResult() {
 
   const tasteSection = match.receiver.taste
     ? `<div style="margin-top:16px;padding:13px 15px;background:rgba(245,166,35,.08);border:1.5px solid rgba(245,166,35,.22);border-radius:14px;text-align:left">
-         <div style="font-size:12px;color:var(--yellow);font-weight:700;margin-bottom:5px">🎁 마니또 취향</div>
-         <div style="font-size:14px;color:var(--text);line-height:1.65;font-weight:500">${match.receiver.taste}</div>
+         <div style="font-size:12px;color:var(--yellow);font-weight:700;margin-bottom:8px">🎁 마니또 취향</div>
+         <div style="font-size:14px;color:var(--text);line-height:1.9;font-weight:500;white-space:pre-line">${match.receiver.taste}</div>
        </div>`
     : '';
 
@@ -908,7 +926,7 @@ function checkMyResult() {
       <div class="my-name">${match.giver.nick}</div>
       <div class="arrow-reveal">👇</div>
       <div style="font-size:13px;color:var(--sub);margin-bottom:4px">나의 마니또는...</div>
-      <div class="target-name">🎁 ${match.receiver.nick} 🎁</div>
+      <div><span style="font-size:28px">🎁</span> <span class="target-name">${match.receiver.nick}</span> <span style="font-size:28px">🎁</span></div>
       <div class="hint">${match.receiver.id}</div>
       ${tasteSection}
     </div>
@@ -1053,15 +1071,14 @@ function downloadResultExcel() {
   if (!matches.length) { showToast('먼저 매칭을 진행해주세요!'); return; }
 
   const rows = [
-    ['닉네임', '영어아이디', '이메일아이디', '팀명', '비밀번호', '내취향', '마니또취향']
+    ['팀명', '영어아이디', '닉네임', '마니또', '내취향', '마니또취향']
   ];
   matches.forEach(m => {
     rows.push([
-      m.giver.nick,
-      m.giver.id,
-      m.giver.id,
       m.giver.team || '',
-      m.pw,
+      m.giver.id,
+      m.giver.nick,
+      m.receiver.nick,
       m.giver.taste || '',
       m.receiver.taste || ''
     ]);
@@ -1069,7 +1086,7 @@ function downloadResultExcel() {
 
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{wch:14},{wch:20},{wch:20},{wch:14},{wch:20},{wch:30},{wch:30}];
+  ws['!cols'] = [{wch:14},{wch:20},{wch:14},{wch:14},{wch:30},{wch:30}];
   XLSX.utils.book_append_sheet(wb, ws, '마니또매칭결과');
   XLSX.writeFile(wb, '마니또_매칭결과.xlsx');
   showToast('엑셀 파일 다운로드 완료!');
@@ -1157,7 +1174,7 @@ function closeModal() {
 document.getElementById('nameInput').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('nickInput').focus(); });
 document.getElementById('nickInput').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('teamInput').focus(); });
 document.getElementById('teamInput').addEventListener('keydown',  e => { if(e.key==='Enter') document.getElementById('tasteInput').focus(); });
-document.getElementById('tasteInput').addEventListener('keydown', e => { if(e.key==='Enter') addParticipant(); });
+// tasteInput은 textarea라 엔터 = 줄바꿈 (Shift+Enter도 자연스럽게 동작)
 document.getElementById('myPwInput').addEventListener('keydown',  e => { if(e.key==='Enter') checkMyResult(); });
 
 // ── URL 파라미터로 개인 결과 직접 확인 ──
@@ -1220,13 +1237,13 @@ document.getElementById('myPwInput').addEventListener('keydown',  e => { if(e.ke
     const tasteHtml = receiverTaste
       ? `<div style="margin-top:14px;padding:12px 14px;background:rgba(255,191,0,.1);border-radius:12px;text-align:left">
            <div style="font-size:11px;font-weight:800;color:var(--yellow);margin-bottom:4px">🎁 마니또 취향</div>
-           <div style="font-size:13px;color:var(--text);line-height:1.6">${receiverTaste}</div>
+           <div style="font-size:13px;color:var(--text);line-height:1.9;white-space:pre-line">${receiverTaste}</div>
          </div>` : '';
 
     area.innerHTML = `
       <div style="padding:24px 20px;background:linear-gradient(135deg,rgba(232,119,154,.1),rgba(240,168,150,.08));border:1.5px solid rgba(232,119,154,.25);border-radius:18px;text-align:center;animation:slideUp .4s ease">
         <div style="font-size:13px;color:var(--sub);margin-bottom:8px">${data.giverNick}님의 마니또는...</div>
-        <div style="font-size:34px;font-weight:900;color:var(--accent);letter-spacing:-1px;margin-bottom:6px">🎁 ${receiverNick} 🎁</div>
+        <div style="margin-bottom:6px"><span style="font-size:28px">🎁</span> <span style="font-size:30px;font-weight:900;color:var(--accent);letter-spacing:-1px">${receiverNick}</span> <span style="font-size:28px">🎁</span></div>
         <div style="font-size:12px;color:var(--sub2)">소중한 선물 부탁드려요 😊</div>
         ${tasteHtml}
       </div>
@@ -1244,7 +1261,7 @@ function updateTasteCount() {
   const len = document.getElementById('tasteInput').value.length;
   const el = document.getElementById('tasteCount');
   el.textContent = len;
-  el.style.color = len >= 180 ? 'var(--red)' : len >= 140 ? 'var(--yellow)' : 'var(--sub)';
+  el.style.color = len >= 280 ? 'var(--red)' : len >= 220 ? 'var(--yellow)' : 'var(--sub)';
 }
 
 // ── 배경 파티클 ──
