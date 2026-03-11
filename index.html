@@ -697,53 +697,76 @@ function doMatch() {
 
 /**
  * 완전한 이분 매칭 알고리즘
- * - 모든 참가자가 정확히 1명에게 주고 1명에게 받는 순열(derangement) 생성
- * - 같은 팀끼리는 절대 매칭되지 않음
- * - 랜덤 셔플 후 욕심쟁이 배정 + 백트래킹으로 보장
+ * - 가장 큰 팀부터 먼저 배정 (제약이 많은 것 우선)
+ * - 백트래킹으로 완전 탐색 보장
  */
 function bipartiteMatch(parts, teamGroups) {
   const n = parts.length;
 
-  // 팀별 id Set
-  const teamOf = {}; // id → teamName
+  const teamOf = {};
   parts.forEach(p => { if (p.team) teamOf[p.id] = p.team; });
 
-  // canMatch(giver, receiver): 다른 팀 또는 팀 없음
-  function canMatch(g, r) {
-    if (g === r) return false;
-    if (teamOf[g] && teamOf[r] && teamOf[g] === teamOf[r]) return false;
+  function canMatch(giverId, receiverId, assignment, sortedParts, receivers) {
+    if (giverId === receiverId) return false;
+    if (teamOf[giverId] && teamOf[receiverId] && teamOf[giverId] === teamOf[receiverId]) return false;
+    // 서로 매칭 방지: receiverId가 이미 giverId를 마니또로 배정받았으면 안 됨
+    const receiverIdx = sortedParts.findIndex(p => p.id === receiverId);
+    if (receiverIdx !== -1 && assignment[receiverIdx] !== -1) {
+      const receiverTarget = receivers[assignment[receiverIdx]];
+      if (receiverTarget && receiverTarget.id === giverId) return false;
+    }
     return true;
   }
 
-  // 최대 50번 시도 (각 시도는 완전한 백트래킹)
-  for (let attempt = 0; attempt < 50; attempt++) {
-    // 수신자 후보 풀을 섞음
+  // 제약이 많은 참가자(팀원 많은 팀) 순으로 정렬 → 먼저 배정
+  const teamSize = {};
+  parts.forEach(p => {
+    if (p.team) teamSize[p.team] = (teamSize[p.team] || 0) + 1;
+  });
+  const sortedParts = [...parts].sort((a, b) => {
+    const sa = teamSize[a.team] || 0;
+    const sb = teamSize[b.team] || 0;
+    return sb - sa; // 팀 크기 내림차순
+  });
+
+  // 여러 번 시도 (셔플로 다양성 확보)
+  for (let attempt = 0; attempt < 200; attempt++) {
     const receivers = shuffle([...parts]);
-    const assignment = new Array(n).fill(-1); // giver index → receiver index
+    const assignment = new Array(n).fill(-1);
     const usedReceiver = new Array(n).fill(false);
 
-    function backtrack(giverIdx) {
-      if (giverIdx === n) return true;
-      const giver = parts[giverIdx];
-      // 수신자 순서도 매 시도마다 랜덤
-      const order = shuffle([...Array(n).keys()]);
-      for (const ri of order) {
-        if (usedReceiver[ri]) continue;
-        const receiver = receivers[ri];
-        if (!canMatch(giver.id, receiver.id)) continue;
-        assignment[giverIdx] = ri;
+    function backtrack(idx) {
+      if (idx === n) return true;
+      const giver = sortedParts[idx];
+
+      // 가능한 수신자 목록을 미리 필터링 후 셔플
+      const candidates = [];
+      for (let ri = 0; ri < n; ri++) {
+        if (!usedReceiver[ri] && canMatch(giver.id, receivers[ri].id, assignment, sortedParts, receivers)) {
+          candidates.push(ri);
+        }
+      }
+      shuffle(candidates);
+
+      for (const ri of candidates) {
+        assignment[idx] = ri;
         usedReceiver[ri] = true;
-        if (backtrack(giverIdx + 1)) return true;
-        assignment[giverIdx] = -1;
+        if (backtrack(idx + 1)) return true;
+        assignment[idx] = -1;
         usedReceiver[ri] = false;
       }
       return false;
     }
 
     if (backtrack(0)) {
-      return parts.map((giver, i) => ({
+      // sortedParts 순서로 결과 생성 후 원래 순서로 재정렬
+      const resultMap = {};
+      sortedParts.forEach((giver, i) => {
+        resultMap[giver.id] = receivers[assignment[i]];
+      });
+      return parts.map(giver => ({
         giver,
-        receiver: receivers[assignment[i]],
+        receiver: resultMap[giver.id],
         pw: randPw()
       }));
     }
@@ -773,7 +796,7 @@ function renderResult() {
     const tasteBox = m.receiver.taste
       ? `<div style="margin:6px 0 14px;padding:10px 13px;background:rgba(245,166,35,.08);border:1.5px solid rgba(245,166,35,.22);border-radius:12px;font-size:12px">
            <span style="color:var(--yellow);font-weight:700">🎁 마니또 취향 </span>
-           <span style="color:var(--text);white-space:pre-line">${m.receiver.taste}</span>
+           <span style="color:var(--text);white-space:pre-line;word-break:break-word;display:block">${m.receiver.taste}</span>
          </div>`
       : '';
     return `<div class="card" style="animation-delay:${i * .06}s">
@@ -811,8 +834,7 @@ function makeIndividualUrl(m) {
     giverNick: m.giver.nick,
     giver: m.giver.id,
     pw: m.pw,
-    receiverNick: m.receiver.nick,
-    receiverTaste: m.receiver.taste || ''
+    receiverNick: m.receiver.nick
   };
   const data = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
   return location.href.split('?')[0] + '?result=' + data;
@@ -1231,12 +1253,9 @@ document.getElementById('myPwInput').addEventListener('keydown',  e => { if(e.ke
     }
 
     const receiverNick = data.receiverNick;
-    const receiverTaste = data.receiverTaste || '';
-    const tasteHtml = receiverTaste
-      ? `<div style="margin-top:14px;padding:12px 14px;background:rgba(255,191,0,.1);border-radius:12px;text-align:left">
-           <div style="font-size:11px;font-weight:800;color:var(--yellow);margin-bottom:4px">🎁 마니또 취향</div>
-           <div style="font-size:13px;color:var(--text);line-height:1.9;white-space:pre-line">${receiverTaste}</div>
-         </div>` : '';
+    const tasteHtml = `<div style="margin-top:14px;padding:10px 14px;background:rgba(232,119,154,.06);border-radius:12px;text-align:center">
+      <div style="font-size:12px;color:var(--sub)">💡 마니또 취향은 <strong style="color:var(--accent)">내 결과 확인</strong> 탭에서 볼 수 있어요!</div>
+    </div>`;
 
     area.innerHTML = `
       <div style="padding:24px 20px;background:linear-gradient(135deg,rgba(232,119,154,.1),rgba(240,168,150,.08));border:1.5px solid rgba(232,119,154,.25);border-radius:18px;text-align:center;animation:slideUp .4s ease">
