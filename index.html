@@ -483,7 +483,7 @@
     <button class="btn btn-outline btn-lg" onclick="copyAllText()">📋 전체 결과 텍스트 복사</button>
     <button class="btn btn-green btn-lg" onclick="downloadResultExcel()">⬇️ 매칭 결과 엑셀 다운로드</button>
     <button class="btn btn-danger btn-lg" onclick="reshuffleConfirm()">🔀 다시 뽑기</button>
-    <button class="btn btn-outline btn-lg" onclick="showAdminResult()" style="border-color:var(--yellow);color:var(--yellow)">👑 관리자 전체 결과 보기</button>
+
   </div>
 </div>
 
@@ -815,21 +815,6 @@ function launchConfetti() {
   draw();
 }
 
-// ── 관리자 전체 결과 보기 ──
-const ADMIN_PW = 'admin1234';
-function showAdminResult() {
-  if (!matches.length) { showToast('먼저 매칭을 진행해주세요!'); return; }
-  const pw = prompt('관리자 비밀번호를 입력하세요');
-  if (pw === null) return;
-  if (pw !== ADMIN_PW) { showToast('❌ 비밀번호가 틀렸습니다!'); return; }
-  const lines = matches.map(m =>
-    `${m.giver.nick}(${m.giver.id}) → ${m.receiver.nick}(${m.receiver.id}) / 비번: ${m.pw}`
-  ).join('\n');
-  showModal('👑 전체 매칭 결과', lines, () => closeModal());
-  document.getElementById('modalConfirmBtn').textContent = '닫기';
-  document.querySelector('.modal-actions .btn-outline').style.display = 'none';
-}
-
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = ~~(Math.random() * (i + 1));
@@ -849,12 +834,7 @@ function renderResult() {
            ${m.giver.team}
          </span><br>`
       : '';
-    const tasteBox = m.receiver.taste
-      ? `<div style="margin:6px 0 14px;padding:10px 13px;background:rgba(245,166,35,.08);border:1.5px solid rgba(245,166,35,.22);border-radius:12px;font-size:12px;word-break:break-word;overflow-wrap:break-word">
-           <div style="color:var(--yellow);font-weight:700;margin-bottom:4px">🎁 마니또 취향</div>
-           <div style="color:var(--text);white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word;line-height:1.8">${m.receiver.taste}</div>
-         </div>`
-      : '';
+
     return `<div class="card" id="card-${i}" style="animation-delay:${i * .06}s">
       <div class="card-name">${m.giver.id}(${m.giver.nick})</div>
       ${teamBadge}
@@ -1030,14 +1010,20 @@ function checkMyResult() {
       <div class="hint">${match.receiver.id}</div>
       ${tasteSection}
     </div>
-    <button class="btn btn-primary btn-lg" onclick="copyMyResult('${match.giver.nick}','${match.receiver.nick}','${match.receiver.taste || ''}')">📋 내 결과 복사</button>
+    <button class="btn btn-primary btn-lg" onclick="copyMyResult('${match.giver.id}')">📋 내 결과 복사</button>
   `;
 }
 
-function copyMyResult(gn, rn, taste) {
-  const tasteText = taste ? `\n🎁 마니또 취향: ${taste}` : '';
-  navigator.clipboard.writeText(`[마니또 결과]\n${gn}님의 마니또: ${rn}${tasteText}\n소중한 선물 부탁드려요 🎁`)
-    .then(() => showToast('복사 완료!'));
+function copyMyResult(giverId) {
+  const m = matches.find(m => m.giver.id === giverId);
+  if (!m) { showToast('매칭 정보를 찾을 수 없어요'); return; }
+  const tasteText = m.receiver.taste ? `\n🎁 마니또 취향:\n${m.receiver.taste}` : '';
+  const text = `[마니또 결과]\n${m.giver.nick}님의 마니또: ${m.receiver.nick}${tasteText}\n소중한 선물 부탁드려요 🎁`;
+  if (navigator.clipboard && location.protocol === 'https:') {
+    navigator.clipboard.writeText(text).then(() => showToast('복사 완료!'));
+  } else {
+    legacyCopy(text);
+  }
 }
 
 // ── 엑셀 업로드 ──
